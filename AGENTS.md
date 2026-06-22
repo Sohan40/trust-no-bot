@@ -8,16 +8,28 @@ Trust No Bot is a single-player-first AI Mafia/social deduction web game. The us
 
 The first product goal is not multiplayer. The first product goal is a replayable single-player game where one human plays with AI agents.
 
-## Read before coding
+## Mandatory memory files
 
-Before implementing any issue, read:
+Before every coding task, read these files in this order:
 
 1. `README.md`
-2. `docs/product_brief.md`
-3. `docs/phasewise_plans.md`
-4. `docs/game_rules.md`
-5. `docs/architecture.md`
+2. `docs/current_state.md`
+3. `docs/codex_memory.md`
+4. `docs/decisions/0001-backend-choice.md`
+5. `docs/decisions/0002-next-week-deployment-fast-track.md`
 6. The specific GitHub issue being implemented
+
+These files are the repo-owned persistent memory. Do not rely on previous chat context.
+
+## Read before coding
+
+Before implementing any issue, also read the relevant planning docs:
+
+1. `docs/product_brief.md`
+2. `docs/phasewise_plans.md`
+3. `docs/game_rules.md`
+4. `docs/architecture.md`
+5. `docs/codex_workflow.md`
 
 For AI-related work, also read:
 
@@ -33,6 +45,18 @@ For database/API work, also read:
 For UI work, also read:
 
 - `docs/ui_ux_spec.md`
+
+## Current delivery constraint
+
+The project is being optimized for a next-week MVP deployment.
+
+Because of that:
+
+- Supabase/Postgres persistence must be implemented earlier than the original long roadmap.
+- In-memory state is acceptable only for early local scaffold work.
+- Do not treat an in-memory game as deploy-ready.
+- Use anonymous session cookies before full login.
+- Keep the deployed MVP focused on Classic Mode only.
 
 ## Implementation principles
 
@@ -63,6 +87,8 @@ LLM owns:
 ### 2. Build phase-wise
 
 Do not jump ahead. If implementing Phase 0, do not build Phase 5 features. Keep changes scoped to the issue.
+
+For the next-week deployment fast track, follow `docs/current_state.md` and `docs/decisions/0002-next-week-deployment-fast-track.md` when they conflict with the older long roadmap.
 
 ### 3. Prefer small, testable modules
 
@@ -147,6 +173,22 @@ For each GitHub issue:
 4. Add/adjust tests.
 5. Open a PR referencing the issue.
 
+## End-of-task memory update
+
+At the end of every task, update:
+
+- `docs/current_state.md`
+- an entry in `docs/implementation_log/` if meaningful work was completed
+- a decision record in `docs/decisions/` if architecture changed
+
+`docs/current_state.md` must include:
+
+- what changed
+- what works
+- what remains pending
+- known risks or bugs
+- next recommended task
+
 ## Definition of done
 
 A task is done only when:
@@ -158,6 +200,7 @@ A task is done only when:
 - docs are updated if architecture/rules/API changed
 - hidden role secrecy is preserved
 - no API keys or secrets are committed
+- `docs/current_state.md` is updated
 
 ## Do not do this
 
@@ -168,3 +211,4 @@ A task is done only when:
 - Do not implement payments before the core game is fun.
 - Do not add complex auth before anonymous play works.
 - Do not overbuild admin tools before public features exist.
+- Do not deploy a public version that loses games on refresh.
