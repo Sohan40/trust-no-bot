@@ -35,12 +35,19 @@ Connected the browser experience to the persisted Classic Mode API routes create
 
 The UI reads the server-filtered `VisibleGameState`. Player cards only render role fields when the game status is completed, and the result panel is only mounted after completion.
 
+## Engine correctness review fixes
+
+- Night resolution now ends the single-player game with a Mafia win when the human is killed and normal win conditions have not already ended the game.
+- Seeded Mafia, Doctor, and Detective target candidates are sorted by persisted player ID before selection.
+- Regression tests cover a human night death before Mafia parity and identical target selection after player-array shuffling.
+- No database migration was added; a dedicated seat index can be considered later.
+
 ## Verification
 
 - `npm run typecheck`
-- `npm test`
+- `npm test` (13 deterministic engine tests)
 - `npm run build`
-- Browser verification of start, refresh, phase advancement, question, voting, result reveal, and mobile layout
+- Browser verification of start, refresh, phase advancement, question, voting, result reveal, and mobile layout was completed during the original UI implementation; the review fixes were validated without new screenshot testing.
 
 ## Not included
 

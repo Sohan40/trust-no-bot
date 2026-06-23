@@ -17,7 +17,11 @@ export function chooseNightActions(
   seed: string,
   nightNumber: number,
 ): NightAction[] {
-  const alivePlayers = players.filter((player) => player.isAlive);
+  const alivePlayers = [...players]
+    .sort((left, right) =>
+      left.id < right.id ? -1 : left.id > right.id ? 1 : 0,
+    )
+    .filter((player) => player.isAlive);
   const mafia = alivePlayers.find((player) => player.role === "Mafia");
   const doctor = alivePlayers.find((player) => player.role === "Doctor");
   const detective = alivePlayers.find((player) => player.role === "Detective");

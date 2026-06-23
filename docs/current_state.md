@@ -24,6 +24,8 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - Server API routes now support starting, loading, advancing, questioning, and voting in a persisted Classic game.
 - Known game errors return safe client messages; unexpected API errors are logged server-side and return a generic 500 response.
 - Game rule tests cover role assignment, night resolution, vote validation, elimination, win conditions, and public-state filtering.
+- Night resolution now completes the single-player game with a Mafia win when the human is killed before ordinary parity, preventing dead-human question/vote soft-locks.
+- Seeded night targets are selected from players sorted by persisted player ID, so reload ordering cannot change deterministic actions.
 - OpenAI Game Director has not been implemented yet.
 - Public deployment has not been configured yet.
 
@@ -96,7 +98,7 @@ Use this order for the next-week MVP:
 
 ## In progress
 
-- Issue #38 persisted game UI wiring is implemented and verified locally.
+- Issue #38 persisted game UI wiring and its engine correctness review fixes are implemented and verified locally.
 
 ## Next recommended issue
 
@@ -117,7 +119,7 @@ The next task should replace deterministic placeholder dialogue without changing
 ## What works locally
 
 - `npm run typecheck` passes.
-- `npm test` passes with 11 deterministic engine tests.
+- `npm test` passes with 13 deterministic engine tests, including dead-human termination and shuffled-order target stability regressions.
 - `npm run build` passes and includes `/game/[gameId]` as a dynamic route.
 - `npm run dev -- --port 4318` serves the API-backed browser flow.
 - Live Supabase browser verification passed:
@@ -138,6 +140,7 @@ The next task should replace deterministic placeholder dialogue without changing
 - Public browser clients must not query hidden-role tables directly; RLS is enabled and repository access uses the server-only service role key.
 - Route handlers must not call service-role helpers with only a user-controlled `gameId`; use `loadGameStateForSession`, `updateGameForSession`, or `assertGameBelongsToSession`.
 - Hidden AI role/team data is filtered out of API-visible state until game over.
+- Stable player ID sorting is the current deterministic target-order key; a dedicated seat index remains a possible later schema improvement.
 - Unexpected API failures do not expose raw environment, Supabase, Postgres, or implementation error messages to clients.
 
 ## What Codex must update after every task

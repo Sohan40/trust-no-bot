@@ -243,7 +243,9 @@ function resolveNight(game: Game): GameTransition {
   const chosenActions = chooseNightActions(game.players, game.seed, game.dayNumber);
   const resolution = resolveNightActions(game.players, chosenActions);
   const playersAfterNight = applyNightKill(game.players, resolution.killedPlayerId);
-  const winner = checkWinCondition(playersAfterNight);
+  const rulesWinner = checkWinCondition(playersAfterNight);
+  const human = getHumanPlayer(playersAfterNight);
+  const winner = rulesWinner ?? (human.isAlive ? null : "mafia");
   const nightMessages = createNightMessages(game, playersAfterNight, resolution.killedPlayerId);
   const detectiveMessage = createDetectiveMessage(game, resolution.detectiveResult);
 
