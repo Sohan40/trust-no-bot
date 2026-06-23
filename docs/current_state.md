@@ -18,7 +18,7 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - `AIProvider` and `MockAIProvider` stubs exist, with no real OpenAI calls.
 - Supabase persistence foundation has been implemented for issue #33.
 - Database migrations now define games, players, messages, votes, night actions, results, anonymous sessions, and AI usage events.
-- Server-only Supabase repository functions exist under `lib/db`.
+- Server-only Supabase repository functions exist under `lib/db`, with route-facing game load/update helpers scoped by anonymous session ownership.
 - Anonymous session cookie helpers exist under `lib/session`.
 - OpenAI Game Director has not been implemented yet.
 - Public deployment has not been configured yet.
@@ -73,6 +73,7 @@ Use this order for the next-week MVP:
   - `lib/session/anonymous-session.ts`
   - `.env.example` updated with Supabase variables.
   - `docs/database_schema.md` updated with migration status.
+  - PR #36 review fix added `loadGameStateForSession`, `updateGameForSession`, and `assertGameBelongsToSession`.
 
 ## In progress
 
@@ -87,6 +88,7 @@ The next task should connect game creation/loading to persistence while preservi
 - TypeScript game logic as the source of rules.
 - Server-side filtering so hidden roles do not leak to the browser.
 - Anonymous session ownership checks before loading a game.
+- Route handlers must use session-scoped repository helpers instead of loading or updating by user-controlled game id alone.
 
 ## Important constraints
 
@@ -106,7 +108,7 @@ The next task should connect game creation/loading to persistence while preservi
 - Production server smoke check after a clean build:
   - `/` returned 200 and included `Can you catch an AI lying?`
   - `/game` returned 200 and included `Classic Room` and `Transcript`
-- Issue #33 additions typecheck locally.
+- Issue #33 additions typecheck locally, including session-scoped repository helpers.
 
 ## Known risks or bugs
 
@@ -116,6 +118,7 @@ The next task should connect game creation/loading to persistence while preservi
 - No real OpenAI integration exists yet.
 - The in-app browser connector failed in this environment with a sandbox metadata error, so final visual verification used HTTP smoke checks instead.
 - Public browser clients must not query hidden-role tables directly; RLS is enabled and repository access uses the server-only service role key.
+- Route handlers must not call service-role helpers with only a user-controlled `gameId`; use `loadGameStateForSession`, `updateGameForSession`, or `assertGameBelongsToSession`.
 
 ## What Codex must update after every task
 

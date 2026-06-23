@@ -21,6 +21,13 @@ function getClient(client?: DbClient): DbClient {
   return client ?? createSupabaseServiceClient();
 }
 
+export class GameOwnershipError extends Error {
+  constructor(gameId: string) {
+    super(`Game ${gameId} was not found for this anonymous session.`);
+    this.name = "GameOwnershipError";
+  }
+}
+
 export async function upsertAnonymousSession(
   sessionId: string,
   client?: DbClient,
@@ -108,6 +115,11 @@ export type CreateGameInput = Pick<
     >
   >;
 
+export type UpdateGameInput = Omit<
+  Database["public"]["Tables"]["games"]["Update"],
+  "id" | "anonymous_session_id" | "created_at"
+>;
+
 export async function createGame(
   input: CreateGameInput,
   client?: DbClient,
@@ -123,9 +135,35 @@ export async function createGame(
   return data;
 }
 
-export async function updateGame(
+export async function assertGameBelongsToSession(
   gameId: string,
-  update: Database["public"]["Tables"]["games"]["Update"],
+  anonymousSessionId: string,
+  client?: DbClient,
+): Promise<GameRow> {
+  const db = getClient(client);
+
+  const { data, error } = await db
+    .from("games")
+    .select()
+    .eq("id", gameId)
+    .eq("anonymous_session_id", anonymousSessionId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new GameOwnershipError(gameId);
+  }
+
+  return data;
+}
+
+export async function updateGameForSession(
+  gameId: string,
+  anonymousSessionId: string,
+  update: UpdateGameInput,
   client?: DbClient,
 ): Promise<GameRow> {
   const db = getClient(client);
@@ -134,11 +172,16 @@ export async function updateGame(
     .from("games")
     .update(update)
     .eq("id", gameId)
+    .eq("anonymous_session_id", anonymousSessionId)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     throw error;
+  }
+
+  if (!data) {
+    throw new GameOwnershipError(gameId);
   }
 
   return data;
@@ -192,7 +235,10 @@ export async function recordGameVotes(
   }
 
   const db = getClient(client);
-  const { data, error } = await db.from("game_votes").upsert(votes).select();
+  const { data, error } = await db
+    .from("game_votes")
+    .upsert(votes, { onConflict: "game_id,day_number,voter_player_id" })
+    .select();
 
   if (error) {
     throw error;
@@ -212,7 +258,9 @@ export async function recordNightActions(
   const db = getClient(client);
   const { data, error } = await db
     .from("night_actions")
-    .upsert(actions)
+    .upsert(actions, {
+      onConflict: "game_id,night_number,actor_player_id,action_type",
+    })
     .select();
 
   if (error) {
@@ -260,7 +308,7 @@ export async function recordAIUsageEvent(
   return data;
 }
 
-export async function loadGameState(
+async function loadGameState(
   gameId: string,
   client?: DbClient,
 ): Promise<PersistedGameState | null> {
@@ -313,6 +361,18 @@ export async function loadGameState(
     nightActions: nightActions ?? [],
     result: result ?? null,
   };
+}
+
+export async function loadGameStateForSession(
+  gameId: string,
+  anonymousSessionId: string,
+  client?: DbClient,
+): Promise<PersistedGameState | null> {
+  const db = getClient(client);
+
+  await assertGameBelongsToSession(gameId, anonymousSessionId, db);
+
+  return loadGameState(gameId, db);
 }
 
 export async function listActiveGamesForSession(

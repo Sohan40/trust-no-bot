@@ -37,6 +37,12 @@ RLS is enabled on all public tables. No anon/authenticated policies are added ye
 
 - Added a server-only Supabase service client.
 - Added repository helpers for sessions, games, players, messages, votes, night actions, results, AI usage events, and aggregate game loading.
+- Added route-facing session-scoped helpers:
+  - `loadGameStateForSession(gameId, anonymousSessionId)`
+  - `updateGameForSession(gameId, anonymousSessionId, update)`
+  - `assertGameBelongsToSession(gameId, anonymousSessionId)`
+- Kept raw aggregate game loading internal to the repository module so route handlers do not load by user-controlled game id alone.
+- Made vote and night-action upserts idempotent against their declared unique constraints with explicit `onConflict` keys.
 - Added anonymous session cookie helpers using an HTTP-only cookie.
 
 ## Verification
@@ -56,3 +62,5 @@ RLS is enabled on all public tables. No anon/authenticated policies are added ye
 ## Next task
 
 Implement the Classic Mode deterministic game engine and thin API routes that call these repositories while filtering hidden role data before any client response.
+
+Future route handlers must use the session-scoped repository helpers and ownership checks before reading or mutating any persisted game state with the service role client.
