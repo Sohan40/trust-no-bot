@@ -20,6 +20,10 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - Database migrations now define games, players, messages, votes, night actions, results, anonymous sessions, and AI usage events.
 - Server-only Supabase repository functions exist under `lib/db`, with route-facing game load/update helpers scoped by anonymous session ownership.
 - Anonymous session cookie helpers exist under `lib/session`.
+- Classic Mode deterministic game engine has been implemented for issue #3.
+- Server API routes now support starting, loading, advancing, questioning, and voting in a persisted Classic game.
+- Known game errors return safe client messages; unexpected API errors are logged server-side and return a generic 500 response.
+- Game rule tests cover role assignment, night resolution, vote validation, elimination, win conditions, and public-state filtering.
 - OpenAI Game Director has not been implemented yet.
 - Public deployment has not been configured yet.
 
@@ -74,16 +78,25 @@ Use this order for the next-week MVP:
   - `.env.example` updated with Supabase variables.
   - `docs/database_schema.md` updated with migration status.
   - PR #36 review fix added `loadGameStateForSession`, `updateGameForSession`, and `assertGameBelongsToSession`.
+- Issue #3 Classic Mode deterministic engine and API implemented:
+  - `lib/game/roles.ts`, `random.ts`, `actions.ts`, `voting.ts`, `win-conditions.ts`, `state-machine.ts`, `public-state.ts`, `persistence.ts`, and `server-persistence.ts`
+  - `app/api/game/start/route.ts`
+  - `app/api/game/[gameId]/route.ts`
+  - `app/api/game/action/route.ts`
+  - `app/api/game/vote/route.ts`
+  - `lib/game/classic-engine.test.ts`
+  - `vitest.config.ts`
+  - `npm test` script
 
 ## In progress
 
-- Preparing the issue #33 persistence PR.
+- PR #37 is under review; the blocking generic API error-message leak has been fixed locally.
 
 ## Next recommended issue
 
-Implement the Classic Mode deterministic game engine and thin API routes that use the new Supabase repositories.
+Connect the `/game` screen to the persisted Classic Mode API routes and state-driven UI.
 
-The next task should connect game creation/loading to persistence while preserving:
+The next task should let the browser start/resume a game, advance phases, ask a question, vote, and render game-over reveal while preserving:
 
 - TypeScript game logic as the source of rules.
 - Server-side filtering so hidden roles do not leak to the browser.
@@ -109,16 +122,22 @@ The next task should connect game creation/loading to persistence while preservi
   - `/` returned 200 and included `Can you catch an AI lying?`
   - `/game` returned 200 and included `Classic Room` and `Transcript`
 - Issue #33 additions typecheck locally, including session-scoped repository helpers.
+- Issue #3 additions pass locally:
+  - `npm run typecheck`
+  - `npm test`
+  - `npm run build`
 
 ## Known risks or bugs
 
-- Current UI still reads mock local state and is not wired to Supabase yet.
-- No Supabase project credentials are present locally, so live database migration/application was not executed in this workspace.
-- No real game engine, API routes, voting resolution, night actions, or win conditions exist yet.
+- Current UI still reads mock local state and is not wired to the new API routes yet.
+- API routes were typechecked and built, but no live Supabase API smoke game was created during this task.
 - No real OpenAI integration exists yet.
+- AI dialogue is intentionally mocked with deterministic placeholder messages.
 - The in-app browser connector failed in this environment with a sandbox metadata error, so final visual verification used HTTP smoke checks instead.
 - Public browser clients must not query hidden-role tables directly; RLS is enabled and repository access uses the server-only service role key.
 - Route handlers must not call service-role helpers with only a user-controlled `gameId`; use `loadGameStateForSession`, `updateGameForSession`, or `assertGameBelongsToSession`.
+- Hidden AI role/team data is filtered out of API-visible state until game over.
+- Unexpected API failures do not expose raw environment, Supabase, Postgres, or implementation error messages to clients.
 
 ## What Codex must update after every task
 
