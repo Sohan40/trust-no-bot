@@ -57,6 +57,8 @@ Added:
 
 Routes use anonymous sessions and session-scoped repository access. Game rows are loaded with `loadGameStateForSession`, updated with `updateGameForSession`, and player-alive updates assert ownership before writing.
 
+Known ownership and game-rule errors return safe client responses. Unexpected errors are logged server-side and return a generic `INTERNAL_SERVER_ERROR` response without exposing internal error messages.
+
 ## Verification
 
 - `npm run typecheck`

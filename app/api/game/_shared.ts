@@ -33,16 +33,17 @@ export function errorResponse(
 
 export function handleGameRouteError(error: unknown): NextResponse {
   if (error instanceof GameOwnershipError) {
-    return errorResponse("GAME_NOT_FOUND", error.message, 404);
+    return errorResponse("GAME_NOT_FOUND", "Game not found.", 404);
   }
 
   if (error instanceof GameRuleError) {
     return errorResponse(error.code, error.message, 400);
   }
 
-  if (error instanceof Error) {
-    return errorResponse("INVALID_ACTION", error.message, 400);
-  }
-
-  return errorResponse("UNKNOWN_ERROR", "Something went wrong.", 500);
+  console.error(error);
+  return errorResponse(
+    "INTERNAL_SERVER_ERROR",
+    "Something went wrong.",
+    500,
+  );
 }

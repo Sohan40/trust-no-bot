@@ -22,6 +22,7 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - Anonymous session cookie helpers exist under `lib/session`.
 - Classic Mode deterministic game engine has been implemented for issue #3.
 - Server API routes now support starting, loading, advancing, questioning, and voting in a persisted Classic game.
+- Known game errors return safe client messages; unexpected API errors are logged server-side and return a generic 500 response.
 - Game rule tests cover role assignment, night resolution, vote validation, elimination, win conditions, and public-state filtering.
 - OpenAI Game Director has not been implemented yet.
 - Public deployment has not been configured yet.
@@ -89,7 +90,7 @@ Use this order for the next-week MVP:
 
 ## In progress
 
-- Issue #3 implementation is complete locally and ready for review/PR.
+- PR #37 is under review; the blocking generic API error-message leak has been fixed locally.
 
 ## Next recommended issue
 
@@ -136,6 +137,7 @@ The next task should let the browser start/resume a game, advance phases, ask a 
 - Public browser clients must not query hidden-role tables directly; RLS is enabled and repository access uses the server-only service role key.
 - Route handlers must not call service-role helpers with only a user-controlled `gameId`; use `loadGameStateForSession`, `updateGameForSession`, or `assertGameBelongsToSession`.
 - Hidden AI role/team data is filtered out of API-visible state until game over.
+- Unexpected API failures do not expose raw environment, Supabase, Postgres, or implementation error messages to clients.
 
 ## What Codex must update after every task
 
