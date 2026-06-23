@@ -150,7 +150,9 @@ export function submitHumanVote(
   const newVotes = collectDayVotes(game, humanVote);
   const eliminatedPlayerId = resolveVotes(newVotes);
   const playersAfterVote = eliminatePlayer(game.players, eliminatedPlayerId);
-  const winner = checkWinCondition(playersAfterVote);
+  const rulesWinner = checkWinCondition(playersAfterVote);
+  const humanAfterVote = getHumanPlayer(playersAfterVote);
+  const winner = rulesWinner ?? (humanAfterVote.isAlive ? null : "mafia");
   const voteMessages = createVoteMessages(game, newVotes, eliminatedPlayerId);
 
   if (winner) {
@@ -243,7 +245,9 @@ function resolveNight(game: Game): GameTransition {
   const chosenActions = chooseNightActions(game.players, game.seed, game.dayNumber);
   const resolution = resolveNightActions(game.players, chosenActions);
   const playersAfterNight = applyNightKill(game.players, resolution.killedPlayerId);
-  const winner = checkWinCondition(playersAfterNight);
+  const rulesWinner = checkWinCondition(playersAfterNight);
+  const human = getHumanPlayer(playersAfterNight);
+  const winner = rulesWinner ?? (human.isAlive ? null : "mafia");
   const nightMessages = createNightMessages(game, playersAfterNight, resolution.killedPlayerId);
   const detectiveMessage = createDetectiveMessage(game, resolution.detectiveResult);
 

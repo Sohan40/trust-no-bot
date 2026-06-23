@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   applyNightKill,
+  chooseNightActions,
   resolveNightActions,
 } from "@/lib/game/actions";
 import { toVisibleGameState } from "@/lib/game/public-state";
 import { assignClassicRoles } from "@/lib/game/roles";
+import {
+  advanceGamePhase,
+  submitHumanVote,
+} from "@/lib/game/state-machine";
 import { checkWinCondition } from "@/lib/game/win-conditions";
 import {
   collectDayVotes,
@@ -41,6 +46,20 @@ describe("Classic Mode role assignment", () => {
 });
 
 describe("Classic Mode night actions", () => {
+  it("chooses the same seeded targets regardless of persisted player order", () => {
+    const players = createPlayers();
+    const shuffledPlayers = [
+      players[3],
+      players[0],
+      players[4],
+      players[1],
+      players[2],
+    ];
+
+    expect(chooseNightActions(shuffledPlayers, "stable-seed", 2)).toEqual(
+      chooseNightActions(players, "stable-seed", 2),
+    );
+  });
   it("lets a doctor save prevent the Mafia kill", () => {
     const players = createPlayers();
     const resolution = resolveNightActions(players, [
@@ -79,9 +98,60 @@ describe("Classic Mode night actions", () => {
       isMafia: true,
     });
   });
+
+  it("ends with a Mafia win when the human dies before normal parity", () => {
+    const game = {
+      ...createGame("NIGHT_ACTIONS"),
+      seed: "human-kill-0",
+      players: [
+        createPlayer("villager-b", "Villager", true),
+        createPlayer("mafia", "Mafia", true),
+        createPlayer("human", "Villager", true, true),
+        createPlayer("doctor", "Doctor", false),
+        createPlayer("villager-a", "Villager", true),
+        createPlayer("detective", "Detective", false),
+      ],
+    };
+
+    const transition = advanceGamePhase(game);
+
+    expect(
+      transition.game.players.find((player) => player.id === "human")?.isAlive,
+    ).toBe(false);
+    expect(checkWinCondition(transition.game.players)).toBeNull();
+    expect(transition.game.status).toBe("completed");
+    expect(transition.game.phase).toBe("GAME_OVER");
+    expect(transition.game.winner).toBe("mafia");
+  });
 });
 
 describe("Classic Mode voting and elimination", () => {
+  it("ends with a Mafia win when voting eliminates the human before parity", () => {
+    const game = {
+      ...createGame("VOTING"),
+      seed: "vote-human-260",
+      players: [
+        createPlayer("human", "Villager", true, true),
+        createPlayer("mafia-a", "Mafia", true),
+        createPlayer("mafia-b", "Mafia", true),
+        createPlayer("villager-a", "Villager", true),
+        createPlayer("villager-b", "Villager", true),
+        createPlayer("villager-c", "Villager", true),
+        createPlayer("villager-d", "Villager", true),
+        createPlayer("villager-e", "Villager", true),
+      ],
+    };
+
+    const transition = submitHumanVote(game, "mafia-a");
+
+    expect(
+      transition.game.players.find((player) => player.id === "human")?.isAlive,
+    ).toBe(false);
+    expect(checkWinCondition(transition.game.players)).toBeNull();
+    expect(transition.game.status).toBe("completed");
+    expect(transition.game.phase).toBe("GAME_OVER");
+    expect(transition.game.winner).toBe("mafia");
+  });
   it("rejects votes outside the voting phase", () => {
     const game = createGame("DAY_DISCUSSION");
 

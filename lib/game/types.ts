@@ -9,6 +9,8 @@ export type GameStatus = "active" | "completed" | "abandoned";
 
 export type Winner = "villagers" | "mafia";
 
+export type AvailableAction = "ADVANCE_PHASE" | "ASK_QUESTION" | "VOTE";
+
 export type Phase =
   | "LOBBY"
   | "ROLE_REVEAL"
@@ -117,7 +119,7 @@ export type VisibleGameState = {
   humanPlayerId: PlayerId;
   publicPlayers: PublicPlayer[];
   messages: Message[];
-  availableActions: string[];
+  availableActions: AvailableAction[];
   privateInfo: PrivateInfo;
   result?: {
     winner: Winner;

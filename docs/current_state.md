@@ -12,9 +12,9 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - GitHub issue backlog exists.
 - Phase 0 app scaffold has been implemented for issue #2.
 - Next.js App Router, TypeScript, Tailwind CSS, and a mobile-first UI shell are in place.
-- Landing page renders the hook and links to `/game`.
-- `/game` renders a static Classic Mode room shell with public player cards, transcript, action panel, and vote preview.
-- Deterministic mock game state exists for scaffold/demo rendering only.
+- Landing page renders the hook and starts a persisted Classic game through `POST /api/game/start`.
+- `/game/[gameId]` loads the persisted visible game state and renders the Classic room, transcript, actions, voting, and result reveal.
+- Deterministic mock game state remains for scaffold/tests only; the browser game route no longer reads it.
 - `AIProvider` and `MockAIProvider` stubs exist, with no real OpenAI calls.
 - Supabase persistence foundation has been implemented for issue #33.
 - Database migrations now define games, players, messages, votes, night actions, results, anonymous sessions, and AI usage events.
@@ -24,6 +24,8 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - Server API routes now support starting, loading, advancing, questioning, and voting in a persisted Classic game.
 - Known game errors return safe client messages; unexpected API errors are logged server-side and return a generic 500 response.
 - Game rule tests cover role assignment, night resolution, vote validation, elimination, win conditions, and public-state filtering.
+- Night resolution and daytime voting now complete the single-player game with a Mafia win when the human is eliminated before ordinary parity, preventing dead-human active-game soft-locks.
+- Seeded night targets are selected from players sorted by persisted player ID, so reload ordering cannot change deterministic actions.
 - OpenAI Game Director has not been implemented yet.
 - Public deployment has not been configured yet.
 
@@ -87,21 +89,22 @@ Use this order for the next-week MVP:
   - `lib/game/classic-engine.test.ts`
   - `vitest.config.ts`
   - `npm test` script
+- Issue #38 persisted Classic UI implemented:
+  - Landing `Start Game` calls `POST /api/game/start` and navigates to `/game/[gameId]`.
+  - Dynamic game route loads `VisibleGameState` through `GET /api/game/[gameId]`.
+  - Phase controls submit advance, question, and vote requests to the existing API routes.
+  - Loading, retry, action-error, completed result, and role-reveal states are rendered.
+  - AI role/team fields remain hidden in the UI until the game is completed.
 
 ## In progress
 
-- PR #37 is under review; the blocking generic API error-message leak has been fixed locally.
+- Issue #38 persisted game UI wiring and its engine correctness review fixes are implemented and verified locally.
 
 ## Next recommended issue
 
-Connect the `/game` screen to the persisted Classic Mode API routes and state-driven UI.
+Implement the OpenAI Game Director with validated structured output and safe mocked fallbacks.
 
-The next task should let the browser start/resume a game, advance phases, ask a question, vote, and render game-over reveal while preserving:
-
-- TypeScript game logic as the source of rules.
-- Server-side filtering so hidden roles do not leak to the browser.
-- Anonymous session ownership checks before loading a game.
-- Route handlers must use session-scoped repository helpers instead of loading or updating by user-controlled game id alone.
+The next task should replace deterministic placeholder dialogue without changing official game truth, persistence ownership, or the browser action contracts.
 
 ## Important constraints
 
@@ -116,27 +119,28 @@ The next task should let the browser start/resume a game, advance phases, ask a 
 ## What works locally
 
 - `npm run typecheck` passes.
-- `npm run build` passes.
-- `npm run dev -- --port 4317` starts successfully when run outside the restricted process sandbox.
-- Production server smoke check after a clean build:
-  - `/` returned 200 and included `Can you catch an AI lying?`
-  - `/game` returned 200 and included `Classic Room` and `Transcript`
-- Issue #33 additions typecheck locally, including session-scoped repository helpers.
-- Issue #3 additions pass locally:
-  - `npm run typecheck`
-  - `npm test`
-  - `npm run build`
+- `npm test` passes with 14 deterministic engine tests, including night/day dead-human termination and shuffled-order target stability regressions.
+- `npm run build` passes and includes `/game/[gameId]` as a dynamic route.
+- `npm run dev -- --port 4318` serves the API-backed browser flow.
+- Live Supabase browser verification passed:
+  - landing start created a persisted game and navigated to its dynamic route
+  - refresh reloaded the same game and phase through the anonymous session cookie
+  - advance, question, skip, and vote actions updated persisted state
+  - the game reached completion and revealed every role
+  - AI roles were absent before completion
+  - invalid game loading rendered a retry/error state without crashing
+  - desktop 1280x800 and mobile 390x844 layouts were visually checked
 
 ## Known risks or bugs
 
-- Current UI still reads mock local state and is not wired to the new API routes yet.
-- API routes were typechecked and built, but no live Supabase API smoke game was created during this task.
+- Browser interaction coverage is currently manual; no automated component or browser test suite exists yet.
 - No real OpenAI integration exists yet.
 - AI dialogue is intentionally mocked with deterministic placeholder messages.
-- The in-app browser connector failed in this environment with a sandbox metadata error, so final visual verification used HTTP smoke checks instead.
+- The in-app browser surface was unavailable, so Playwright CLI provided desktop/mobile interaction and screenshot verification.
 - Public browser clients must not query hidden-role tables directly; RLS is enabled and repository access uses the server-only service role key.
 - Route handlers must not call service-role helpers with only a user-controlled `gameId`; use `loadGameStateForSession`, `updateGameForSession`, or `assertGameBelongsToSession`.
 - Hidden AI role/team data is filtered out of API-visible state until game over.
+- Stable player ID sorting is the current deterministic target-order key; a dedicated seat index remains a possible later schema improvement.
 - Unexpected API failures do not expose raw environment, Supabase, Postgres, or implementation error messages to clients.
 
 ## What Codex must update after every task
