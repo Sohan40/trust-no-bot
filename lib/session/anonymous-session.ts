@@ -62,3 +62,8 @@ export async function getOrCreateAnonymousSessionId(): Promise<string> {
 
   return sessionId;
 }
+
+export async function getAnonymousSessionId(): Promise<string | null> {
+  const cookieStore = await cookies();
+  return readAnonymousSessionId(cookieStore);
+}

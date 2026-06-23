@@ -169,14 +169,17 @@ export function createMockGame(seed: string): Game {
   return {
     id: "mock-game-001",
     mode: "classic",
+    status: "active",
     phase: "PLAYER_QUESTION",
     phaseLabel: "Player Question",
     dayNumber: 1,
     seed,
+    winner: null,
     humanPlayerId: "human",
     players,
     messages,
     votes: [],
+    nightActions: [],
   };
 }
 

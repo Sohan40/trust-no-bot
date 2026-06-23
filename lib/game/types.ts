@@ -5,6 +5,10 @@ export type Role = "Mafia" | "Detective" | "Doctor" | "Villager";
 
 export type Team = "mafia" | "village";
 
+export type GameStatus = "active" | "completed" | "abandoned";
+
+export type Winner = "villagers" | "mafia";
+
 export type Phase =
   | "LOBBY"
   | "ROLE_REVEAL"
@@ -18,7 +22,9 @@ export type Phase =
   | "WIN_CHECK"
   | "GAME_OVER";
 
-export type MessageVisibility = "public" | "private";
+export type MessageVisibility = "public" | "private" | "system";
+
+export type NightActionType = "mafia_kill" | "doctor_save" | "detective_check";
 
 export type AgentTraits = {
   aggression: number;
@@ -44,7 +50,10 @@ export type Player = {
   suspicion: number;
 };
 
-export type PublicPlayer = Omit<Player, "role" | "team" | "memorySummary">;
+export type PublicPlayer = Omit<Player, "role" | "team" | "memorySummary"> & {
+  role?: Role;
+  team?: Team;
+};
 
 export type Message = {
   id: string;
@@ -52,8 +61,11 @@ export type Message = {
   speakerName: string;
   phase: Phase;
   phaseLabel: string;
+  dayNumber?: number;
   visibility: MessageVisibility;
   text: string;
+  intent?: string;
+  metadata?: Record<string, unknown>;
 };
 
 export type Vote = {
@@ -63,15 +75,53 @@ export type Vote = {
   reason?: string;
 };
 
+export type NightAction = {
+  actorId: PlayerId;
+  targetId: PlayerId | null;
+  nightNumber: number;
+  actionType: NightActionType;
+  result?: Record<string, unknown>;
+};
+
 export type Game = {
   id: GameId;
   mode: "classic";
+  status: GameStatus;
   phase: Phase;
   phaseLabel: string;
   dayNumber: number;
   seed: string;
+  winner: Winner | null;
   humanPlayerId: PlayerId;
   players: Player[];
   messages: Message[];
   votes: Vote[];
+  nightActions: NightAction[];
+};
+
+export type PrivateInfo = {
+  role: Role;
+  team: Team;
+};
+
+export type VisibleGameState = {
+  game: {
+    id: GameId;
+    mode: "classic";
+    status: GameStatus;
+    phase: Phase;
+    phaseLabel: string;
+    dayNumber: number;
+    winner: Winner | null;
+  };
+  humanPlayerId: PlayerId;
+  publicPlayers: PublicPlayer[];
+  messages: Message[];
+  availableActions: string[];
+  privateInfo: PrivateInfo;
+  result?: {
+    winner: Winner;
+    summary: string;
+    shareText: string;
+  };
 };

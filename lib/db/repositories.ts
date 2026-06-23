@@ -120,6 +120,11 @@ export type UpdateGameInput = Omit<
   "id" | "anonymous_session_id" | "created_at"
 >;
 
+export type UpdateGamePlayerInput = Omit<
+  Database["public"]["Tables"]["game_players"]["Update"],
+  "id" | "game_id" | "created_at"
+>;
+
 export async function createGame(
   input: CreateGameInput,
   client?: DbClient,
@@ -200,6 +205,36 @@ export async function insertGamePlayers(
 
   if (error) {
     throw error;
+  }
+
+  return data;
+}
+
+export async function updateGamePlayerForSession(
+  gameId: string,
+  anonymousSessionId: string,
+  playerId: string,
+  update: UpdateGamePlayerInput,
+  client?: DbClient,
+): Promise<GamePlayerRow> {
+  const db = getClient(client);
+
+  await assertGameBelongsToSession(gameId, anonymousSessionId, db);
+
+  const { data, error } = await db
+    .from("game_players")
+    .update(update)
+    .eq("game_id", gameId)
+    .eq("id", playerId)
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new GameOwnershipError(gameId);
   }
 
   return data;
