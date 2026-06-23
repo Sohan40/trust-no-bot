@@ -1,4 +1,5 @@
 import type {
+  AvailableAction,
   Game,
   Message,
   Player,
@@ -85,7 +86,7 @@ function isMessageVisibleToViewer(message: Message, viewerId: PlayerId): boolean
   return message.metadata?.recipientPlayerId === viewerId;
 }
 
-function getAvailableActions(game: Game): string[] {
+function getAvailableActions(game: Game): AvailableAction[] {
   if (game.status !== "active") {
     return [];
   }
