@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-06-22
+Last updated: 2026-06-23
 
 ## Current goal
 
@@ -10,7 +10,12 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 
 - Repository planning docs exist.
 - GitHub issue backlog exists.
-- Code scaffold has not started yet.
+- Phase 0 app scaffold has been implemented for issue #2.
+- Next.js App Router, TypeScript, Tailwind CSS, and a mobile-first UI shell are in place.
+- Landing page renders the hook and links to `/game`.
+- `/game` renders a static Classic Mode room shell with public player cards, transcript, action panel, and vote preview.
+- Deterministic mock game state exists for scaffold/demo rendering only.
+- `AIProvider` and `MockAIProvider` stubs exist, with no real OpenAI calls.
 - Supabase persistence has not been implemented yet.
 - OpenAI Game Director has not been implemented yet.
 - Public deployment has not been configured yet.
@@ -51,21 +56,29 @@ Use this order for the next-week MVP:
 - `AGENTS.md` added for Codex instructions.
 - Issue backlog created.
 - Persistent memory docs added.
+- Issue #2 app foundation implemented:
+  - `package.json`, `package-lock.json`, `tsconfig.json`, `next.config.ts`, `postcss.config.mjs`, `next-env.d.ts`, `.gitignore`
+  - `app/layout.tsx`, `app/globals.css`, `app/page.tsx`, `app/game/page.tsx`
+  - `components/game/GameShell.tsx`, `PlayerCard.tsx`, `Transcript.tsx`, `ActionPanel.tsx`
+  - `lib/game/types.ts`, `lib/game/mock-state.ts`
+  - `lib/ai/provider.ts`, `lib/ai/mock-provider.ts`
+  - `lib/types/index.ts`
 
 ## In progress
 
-- Preparing repo for Codex implementation before local clone.
+- Reviewing and preparing the Phase 0 scaffold PR.
 
 ## Next recommended issue
 
-Start with GitHub issue #2, but adapt it to the next-week deploy plan:
+Implement GitHub issue #33 for Supabase persistence before OpenAI integration or public deployment.
 
-- scaffold Next.js app
-- create basic UI shell
-- create game types and mock state
-- also create/keep docs current
+Issue #33 should add:
 
-Then immediately add a Supabase persistence issue/PR before OpenAI integration.
+- Supabase setup docs and migrations.
+- Tables for games, players, messages, votes, night actions, results, and anonymous sessions.
+- Thin repository functions under `lib/db`.
+- Anonymous session cookie support.
+- A clear path for refresh-safe game state.
 
 ## Important constraints
 
@@ -76,6 +89,23 @@ Then immediately add a Supabase persistence issue/PR before OpenAI integration.
 - Do not let AI output control official game truth.
 - Do not reveal secret role data in the UI before allowed reveal.
 - Do not commit API keys or local secrets.
+
+## What works locally
+
+- `npm run typecheck` passes.
+- `npm run build` passes.
+- `npm run dev -- --port 4317` starts successfully when run outside the restricted process sandbox.
+- Production server smoke check after a clean build:
+  - `/` returned 200 and included `Can you catch an AI lying?`
+  - `/game` returned 200 and included `Classic Room` and `Transcript`
+
+## Known risks or bugs
+
+- Current game state is mock local state only and is not deploy-ready.
+- No Supabase persistence exists yet, so refresh-safe gameplay is pending issue #33.
+- No real game engine, API routes, voting resolution, night actions, or win conditions exist yet.
+- No real OpenAI integration exists yet.
+- The in-app browser connector failed in this environment with a sandbox metadata error, so final visual verification used HTTP smoke checks instead.
 
 ## What Codex must update after every task
 
