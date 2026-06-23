@@ -37,15 +37,15 @@ The UI reads the server-filtered `VisibleGameState`. Player cards only render ro
 
 ## Engine correctness review fixes
 
-- Night resolution now ends the single-player game with a Mafia win when the human is killed and normal win conditions have not already ended the game.
+- Night resolution and daytime vote resolution now end the single-player game with a Mafia win when the human is eliminated and normal win conditions have not already ended the game.
 - Seeded Mafia, Doctor, and Detective target candidates are sorted by persisted player ID before selection.
-- Regression tests cover a human night death before Mafia parity and identical target selection after player-array shuffling.
+- Regression tests cover human elimination by night kill or daytime vote before Mafia parity, plus identical target selection after player-array shuffling.
 - No database migration was added; a dedicated seat index can be considered later.
 
 ## Verification
 
 - `npm run typecheck`
-- `npm test` (13 deterministic engine tests)
+- `npm test` (14 deterministic engine tests)
 - `npm run build`
 - Browser verification of start, refresh, phase advancement, question, voting, result reveal, and mobile layout was completed during the original UI implementation; the review fixes were validated without new screenshot testing.
 

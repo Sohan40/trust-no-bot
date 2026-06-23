@@ -150,7 +150,9 @@ export function submitHumanVote(
   const newVotes = collectDayVotes(game, humanVote);
   const eliminatedPlayerId = resolveVotes(newVotes);
   const playersAfterVote = eliminatePlayer(game.players, eliminatedPlayerId);
-  const winner = checkWinCondition(playersAfterVote);
+  const rulesWinner = checkWinCondition(playersAfterVote);
+  const humanAfterVote = getHumanPlayer(playersAfterVote);
+  const winner = rulesWinner ?? (humanAfterVote.isAlive ? null : "mafia");
   const voteMessages = createVoteMessages(game, newVotes, eliminatedPlayerId);
 
   if (winner) {
