@@ -1,5 +1,13 @@
 # Database Schema Plan
 
+## Implementation status
+
+Issue #33 adds the initial Supabase migration at:
+
+- `supabase/migrations/20260623062909_issue_33_persistence.sql`
+
+The migration implements the tables in this document plus `ai_usage_events`, enables RLS on all public tables, and intentionally adds no anon/authenticated table policies yet. MVP application access should go through server-only repository functions under `lib/db` so hidden roles are not exposed to browser clients.
+
 Do not add persistence in Phase 0 unless needed. Start with local/in-memory state, then add database in Phase 8.
 
 Recommended database: Postgres through Supabase.

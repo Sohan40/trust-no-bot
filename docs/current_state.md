@@ -16,7 +16,10 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - `/game` renders a static Classic Mode room shell with public player cards, transcript, action panel, and vote preview.
 - Deterministic mock game state exists for scaffold/demo rendering only.
 - `AIProvider` and `MockAIProvider` stubs exist, with no real OpenAI calls.
-- Supabase persistence has not been implemented yet.
+- Supabase persistence foundation has been implemented for issue #33.
+- Database migrations now define games, players, messages, votes, night actions, results, anonymous sessions, and AI usage events.
+- Server-only Supabase repository functions exist under `lib/db`.
+- Anonymous session cookie helpers exist under `lib/session`.
 - OpenAI Game Director has not been implemented yet.
 - Public deployment has not been configured yet.
 
@@ -63,22 +66,27 @@ Use this order for the next-week MVP:
   - `lib/game/types.ts`, `lib/game/mock-state.ts`
   - `lib/ai/provider.ts`, `lib/ai/mock-provider.ts`
   - `lib/types/index.ts`
+- Issue #33 Supabase persistence foundation implemented:
+  - `@supabase/supabase-js` dependency added.
+  - `supabase/migrations/20260623062909_issue_33_persistence.sql`
+  - `lib/db/client.ts`, `lib/db/types.ts`, `lib/db/repositories.ts`
+  - `lib/session/anonymous-session.ts`
+  - `.env.example` updated with Supabase variables.
+  - `docs/database_schema.md` updated with migration status.
 
 ## In progress
 
-- Reviewing and preparing the Phase 0 scaffold PR.
+- Preparing the issue #33 persistence PR.
 
 ## Next recommended issue
 
-Implement GitHub issue #33 for Supabase persistence before OpenAI integration or public deployment.
+Implement the Classic Mode deterministic game engine and thin API routes that use the new Supabase repositories.
 
-Issue #33 should add:
+The next task should connect game creation/loading to persistence while preserving:
 
-- Supabase setup docs and migrations.
-- Tables for games, players, messages, votes, night actions, results, and anonymous sessions.
-- Thin repository functions under `lib/db`.
-- Anonymous session cookie support.
-- A clear path for refresh-safe game state.
+- TypeScript game logic as the source of rules.
+- Server-side filtering so hidden roles do not leak to the browser.
+- Anonymous session ownership checks before loading a game.
 
 ## Important constraints
 
@@ -98,14 +106,16 @@ Issue #33 should add:
 - Production server smoke check after a clean build:
   - `/` returned 200 and included `Can you catch an AI lying?`
   - `/game` returned 200 and included `Classic Room` and `Transcript`
+- Issue #33 additions typecheck locally.
 
 ## Known risks or bugs
 
-- Current game state is mock local state only and is not deploy-ready.
-- No Supabase persistence exists yet, so refresh-safe gameplay is pending issue #33.
+- Current UI still reads mock local state and is not wired to Supabase yet.
+- No Supabase project credentials are present locally, so live database migration/application was not executed in this workspace.
 - No real game engine, API routes, voting resolution, night actions, or win conditions exist yet.
 - No real OpenAI integration exists yet.
 - The in-app browser connector failed in this environment with a sandbox metadata error, so final visual verification used HTTP smoke checks instead.
+- Public browser clients must not query hidden-role tables directly; RLS is enabled and repository access uses the server-only service role key.
 
 ## What Codex must update after every task
 
