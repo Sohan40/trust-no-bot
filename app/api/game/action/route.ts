@@ -4,12 +4,13 @@ import {
   requireAnonymousSession,
 } from "@/app/api/game/_shared";
 import { loadGameStateForSession } from "@/lib/db/repositories";
+import { isSafeUserQuestion } from "@/lib/ai/safety";
 import { persistedStateToGame } from "@/lib/game/persistence";
 import { persistTransitionForSession } from "@/lib/game/server-persistence";
 import {
-  advanceGamePhase,
-  submitPlayerQuestion,
-} from "@/lib/game/state-machine";
+  advanceGamePhaseWithDirector,
+  submitPlayerQuestionWithDirector,
+} from "@/lib/game/server-transitions";
 
 type ActionBody = {
   gameId?: unknown;
@@ -38,6 +39,21 @@ export async function POST(request: Request): Promise<NextResponse> {
       return invalidBody("Unsupported actionType.");
     }
 
+    const question =
+      typeof body.payload?.question === "string"
+        ? body.payload.question.slice(0, 500)
+        : "";
+
+    if (
+      body.actionType === "ASK_QUESTION" &&
+      question.trim() &&
+      !isSafeUserQuestion(question)
+    ) {
+      return invalidBody(
+        "Keep questions fictional, safe, and focused on the game.",
+      );
+    }
+
     const persisted = await loadGameStateForSession(body.gameId, session.sessionId);
 
     if (!persisted) {
@@ -47,12 +63,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     const game = persistedStateToGame(persisted);
     const transition =
       body.actionType === "ADVANCE_PHASE"
-        ? advanceGamePhase(game)
-        : submitPlayerQuestion(
+        ? await advanceGamePhaseWithDirector(game)
+        : await submitPlayerQuestionWithDirector(
             game,
-            typeof body.payload?.question === "string"
-              ? body.payload.question.slice(0, 500)
-              : "",
+            question,
             typeof body.payload?.targetPlayerId === "string"
               ? body.payload.targetPlayerId
               : undefined,

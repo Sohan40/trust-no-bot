@@ -1,10 +1,12 @@
-export type AIProviderRequest<TInput> = {
+import type { ZodType } from "zod";
+
+export type AIProviderRequest = {
   schemaName: string;
-  input: TInput;
+  instructions: string;
+  input: unknown;
+  outputSchema: ZodType;
 };
 
 export interface AIProvider {
-  generateStructured<TInput, TOutput>(
-    request: AIProviderRequest<TInput>,
-  ): Promise<TOutput>;
+  generateStructured(request: AIProviderRequest): Promise<unknown>;
 }

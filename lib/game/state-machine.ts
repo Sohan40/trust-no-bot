@@ -30,6 +30,12 @@ export type GameTransition = {
   };
 };
 
+export type GeneratedDialogueLine = {
+  speakerId: PlayerId;
+  text: string;
+  intent?: string;
+};
+
 type CreateClassicGameInput = {
   gameId: string;
   seed: string;
@@ -77,7 +83,10 @@ export function createClassicGame(input: CreateClassicGameInput): GameTransition
   };
 }
 
-export function advanceGamePhase(game: Game): GameTransition {
+export function advanceGamePhase(
+  game: Game,
+  generatedDialogue: GeneratedDialogueLine[] = [],
+): GameTransition {
   assertActive(game);
 
   switch (game.phase) {
@@ -92,7 +101,11 @@ export function advanceGamePhase(game: Game): GameTransition {
     case "NIGHT_ACTIONS":
       return resolveNight(game);
     case "DAY_DISCUSSION":
-      return updatePhase(game, "PLAYER_QUESTION", createMockDiscussion(game));
+      return updatePhase(
+        game,
+        "PLAYER_QUESTION",
+        createDiscussionMessages(game, generatedDialogue),
+      );
     case "PLAYER_QUESTION":
       return submitPlayerQuestion(game, null);
     default:
@@ -104,6 +117,7 @@ export function submitPlayerQuestion(
   game: Game,
   question: string | null,
   targetPlayerId?: PlayerId,
+  generatedDialogue: GeneratedDialogueLine[] = [],
 ): GameTransition {
   assertActive(game);
 
@@ -130,7 +144,11 @@ export function submitPlayerQuestion(
         text: "No direct question was asked. The room moves to a vote.",
         intent: "question_skipped",
       });
-  const aiResponses = createMockQuestionResponses(game, targetPlayerId);
+  const aiResponses = createQuestionResponseMessages(
+    game,
+    targetPlayerId,
+    generatedDialogue,
+  );
   return updatePhase(game, "VOTING", [promptMessage, ...aiResponses]);
 }
 
@@ -322,6 +340,64 @@ function updatePhase(
     game: nextGame,
     newMessages,
   };
+}
+
+function createDiscussionMessages(
+  game: Game,
+  generatedDialogue: GeneratedDialogueLine[],
+): Message[] {
+  const generatedMessages = createGeneratedDialogueMessages(
+    game,
+    generatedDialogue,
+  );
+
+  return generatedMessages.length > 0
+    ? generatedMessages
+    : createMockDiscussion(game);
+}
+
+function createQuestionResponseMessages(
+  game: Game,
+  targetPlayerId: PlayerId | undefined,
+  generatedDialogue: GeneratedDialogueLine[],
+): Message[] {
+  const generatedMessages = createGeneratedDialogueMessages(
+    game,
+    generatedDialogue,
+  );
+
+  return generatedMessages.length > 0
+    ? generatedMessages
+    : createMockQuestionResponses(game, targetPlayerId);
+}
+
+function createGeneratedDialogueMessages(
+  game: Game,
+  generatedDialogue: GeneratedDialogueLine[],
+): Message[] {
+  return generatedDialogue.slice(0, 6).flatMap((line) => {
+    const speaker = game.players.find(
+      (player) =>
+        player.id === line.speakerId &&
+        player.isAlive &&
+        !player.isHuman,
+    );
+    const text = line.text.trim();
+
+    if (!speaker || !text || text.split(/\s+/).length > 35) {
+      return [];
+    }
+
+    return [
+      createMessage(game, {
+        speakerId: speaker.id,
+        speakerName: speaker.displayName,
+        visibility: "public",
+        text,
+        intent: line.intent ?? "ai_dialogue",
+      }),
+    ];
+  });
 }
 
 function createMockDiscussion(game: Game): Message[] {
