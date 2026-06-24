@@ -3,6 +3,10 @@ import "server-only";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import type { AIProvider, AIProviderRequest } from "@/lib/ai/provider";
+import {
+  getOptionalServerEnvironmentVariable,
+  getRequiredServerEnvironmentVariable,
+} from "@/lib/env/server";
 
 type OpenAIProviderOptions = {
   apiKey?: string;
@@ -14,18 +18,19 @@ export class OpenAIProvider implements AIProvider {
   private readonly model: string;
 
   constructor(options: OpenAIProviderOptions = {}) {
-    const apiKey = options.apiKey ?? process.env.OPENAI_API_KEY;
-
-    if (!apiKey) {
-      throw new Error("OPENAI_API_KEY is required for OpenAIProvider.");
-    }
+    const apiKey =
+      options.apiKey?.trim() ||
+      getRequiredServerEnvironmentVariable("OPENAI_API_KEY");
 
     this.client = new OpenAI({
       apiKey,
       maxRetries: 1,
       timeout: 20_000,
     });
-    this.model = options.model ?? process.env.OPENAI_MODEL ?? "gpt-4.1-mini";
+    this.model =
+      options.model?.trim() ||
+      getOptionalServerEnvironmentVariable("OPENAI_MODEL") ||
+      "gpt-4.1-mini";
   }
 
   async generateStructured(request: AIProviderRequest): Promise<unknown> {

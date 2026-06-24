@@ -102,7 +102,7 @@ The model generates dialogue only. It does not own game truth.
 Deliver:
 
 - `.env.example` updated
-- Vercel env checklist
+- Vercel env checklist in [`deployment.md`](./deployment.md)
 - Supabase env checklist
 - OpenAI key setup note
 - basic rate limits
