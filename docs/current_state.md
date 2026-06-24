@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-06-23
+Last updated: 2026-06-24
 
 ## Current goal
 
@@ -15,7 +15,7 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - Landing page renders the hook and starts a persisted Classic game through `POST /api/game/start`.
 - `/game/[gameId]` loads the persisted visible game state and renders the Classic room, transcript, actions, voting, and result reveal.
 - Deterministic mock game state remains for scaffold/tests only; the browser game route no longer reads it.
-- `AIProvider` and `MockAIProvider` stubs exist, with no real OpenAI calls.
+- A swappable `AIProvider`, deterministic `MockAIProvider`, and server-only `OpenAIProvider` are implemented.
 - Supabase persistence foundation has been implemented for issue #33.
 - Database migrations now define games, players, messages, votes, night actions, results, anonymous sessions, and AI usage events.
 - Server-only Supabase repository functions exist under `lib/db`, with route-facing game load/update helpers scoped by anonymous session ownership.
@@ -26,7 +26,9 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - Game rule tests cover role assignment, night resolution, vote validation, elimination, win conditions, and public-state filtering.
 - Night resolution and daytime voting now complete the single-player game with a Mafia win when the human is eliminated before ordinary parity, preventing dead-human active-game soft-locks.
 - Seeded night targets are selected from players sorted by persisted player ID, so reload ordering cannot change deterministic actions.
-- OpenAI Game Director has not been implemented yet.
+- The Game Director uses one structured OpenAI Responses API call per day discussion or human question, with Zod validation and mocked fallback dialogue.
+- Model output can provide dialogue and advisory memory/suspicion/vote data, but only validated public dialogue is currently applied.
+- Unsafe questions and direct named-player role/team attribution are rejected before they reach browser-visible state, while ordinary suspicion language remains allowed.
 - Public deployment has not been configured yet.
 
 ## Current architecture decision
@@ -95,16 +97,21 @@ Use this order for the next-week MVP:
   - Phase controls submit advance, question, and vote requests to the existing API routes.
   - Loading, retry, action-error, completed result, and role-reveal states are rendered.
   - AI role/team fields remain hidden in the UI until the game is completed.
+- Issue #4 OpenAI Game Director implemented:
+  - Server-only OpenAI Responses API provider using `OPENAI_API_KEY` and optional `OPENAI_MODEL`.
+  - Strict Zod input/output schemas, compact prompts, safety checks, and deterministic fallback provider.
+  - Day discussion and question response generation integrated into the persisted action route.
+  - Engine accepts only validated public dialogue lines; roles, life state, votes, phases, and winners remain deterministic.
 
 ## In progress
 
-- Issue #38 persisted game UI wiring and its engine correctness review fixes are implemented and verified locally.
+- Issue #4 OpenAI Game Director integration is implemented and verified locally with mocked provider tests.
 
 ## Next recommended issue
 
-Implement the OpenAI Game Director with validated structured output and safe mocked fallbacks.
+Finish the result/share-text experience, then prepare the Vercel deployment with environment variables, basic rate limits, and AI usage monitoring.
 
-The next task should replace deterministic placeholder dialogue without changing official game truth, persistence ownership, or the browser action contracts.
+The next task must preserve anonymous-session ownership, hidden-role filtering, and the deterministic game-truth boundary.
 
 ## Important constraints
 
@@ -119,7 +126,7 @@ The next task should replace deterministic placeholder dialogue without changing
 ## What works locally
 
 - `npm run typecheck` passes.
-- `npm test` passes with 14 deterministic engine tests, including night/day dead-human termination and shuffled-order target stability regressions.
+- `npm test` passes with 34 engine and Game Director tests, including direct role-attribution rejection, allowed suspicion language, fallback, truth immutability, and hidden-role filtering.
 - `npm run build` passes and includes `/game/[gameId]` as a dynamic route.
 - `npm run dev -- --port 4318` serves the API-backed browser flow.
 - Live Supabase browser verification passed:
@@ -134,8 +141,8 @@ The next task should replace deterministic placeholder dialogue without changing
 ## Known risks or bugs
 
 - Browser interaction coverage is currently manual; no automated component or browser test suite exists yet.
-- No real OpenAI integration exists yet.
-- AI dialogue is intentionally mocked with deterministic placeholder messages.
+- Automated Game Director tests use mock providers; a live OpenAI response smoke test is still recommended before public deployment.
+- Memory updates, suspicion deltas, and suggested votes are validated but intentionally not persisted or applied in issue #4.
 - The in-app browser surface was unavailable, so Playwright CLI provided desktop/mobile interaction and screenshot verification.
 - Public browser clients must not query hidden-role tables directly; RLS is enabled and repository access uses the server-only service role key.
 - Route handlers must not call service-role helpers with only a user-controlled `gameId`; use `loadGameStateForSession`, `updateGameForSession`, or `assertGameBelongsToSession`.
