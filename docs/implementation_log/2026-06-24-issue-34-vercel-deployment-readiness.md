@@ -34,9 +34,17 @@ configuration failures remain in server logs.
 - `npm test` (39 tests)
 - `npm run build` with `.env.local` temporarily absent, proving static analysis
   does not require production secrets
+- Vercel production build reached `READY` and was aliased to
+  `https://trust-no-bot.vercel.app`.
+- Live smoke testing covered landing, start, anonymous-session reload, phase
+  advancement, OpenAI/fallback questioning, voting, game over, role reveal, and
+  completed-game reload.
+- Hidden AI role/team fields were absent before game over, and no HTTP 500 logs
+  were recorded during the smoke window.
 
-No production deployment or live OpenAI request was made. The deployment guide
-requires a manual live OpenAI smoke test before public sharing.
+A live OpenAI request was made. Its advisory memory update failed validation, so
+the Game Director logged the failure and safely used mocked dialogue. The game
+remained playable and persisted correctly.
 
 ## Not included
 
@@ -48,6 +56,5 @@ requires a manual live OpenAI smoke test before public sharing.
 
 ## Next task
 
-Configure the documented Vercel environment, create a controlled deployment,
-run the full smoke checklist, and add the planned usage limit before wider
-sharing.
+Add the planned usage limit before wider sharing, then monitor live OpenAI
+fallback frequency and tighten advisory-output handling if needed.

@@ -31,7 +31,7 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - Unsafe questions and direct named-player role/team attribution are rejected before they reach browser-visible state, while ordinary suspicion language remains allowed.
 - Issue #34 deployment readiness is implemented with lazy server environment validation, a complete Vercel setup guide, and a production smoke checklist.
 - Missing Supabase runtime configuration produces clear server-side errors without exposing details through API responses; missing OpenAI configuration uses the safe mocked-dialogue fallback.
-- Production Vercel deployment has not been configured yet.
+- The configured production deployment is live at `https://trust-no-bot.vercel.app` on Vercel project `trust-no-bot`.
 
 ## Current architecture decision
 
@@ -112,13 +112,13 @@ Use this order for the next-week MVP:
 
 ## In progress
 
-- Production environment configuration and deployment remain operational steps; issue #34 code and documentation are complete locally.
+- Issue #34 code, documentation, environment configuration, production deployment, and live smoke testing are complete.
 
 ## Next recommended issue
 
-Configure the documented Vercel environment, deploy a controlled preview/production build, and run the complete smoke checklist including a live OpenAI question.
-
 Add the planned usage limit before sharing the deployment beyond a controlled test audience.
+
+Monitor and tighten Game Director advisory-output validation if live OpenAI responses continue to fall back because of invalid memory updates.
 
 The next task must preserve anonymous-session ownership, hidden-role filtering, and the deterministic game-truth boundary.
 
@@ -147,13 +147,22 @@ The next task must preserve anonymous-session ownership, hidden-role filtering, 
   - AI roles were absent before completion
   - invalid game loading rendered a retry/error state without crashing
   - desktop 1280x800 and mobile 390x844 layouts were visually checked
+- Production Vercel smoke verification passed at `https://trust-no-bot.vercel.app`:
+  - landing page returned 200
+  - start game returned 201 and set an anonymous session cookie
+  - refresh loaded the same persisted game with 200
+  - phase advancement reached player questioning and voting
+  - a live OpenAI request was attempted; invalid advisory memory output was rejected and mocked dialogue safely replaced it
+  - voting completed a game, rendered a result, revealed all seven roles after game over, and persisted the completed state across reload
+  - no hidden AI role/team fields appeared before game over
+  - Vercel runtime logs contained no HTTP 500 responses during the smoke window
 
 ## Known risks or bugs
 
 - Browser interaction coverage is currently manual; no automated component or browser test suite exists yet.
 - Automated Game Director tests use mock providers; a live OpenAI response smoke test is still recommended before public deployment.
-- No Vercel production deployment has been smoke-tested yet; follow `docs/deployment.md` after configuring the project.
 - Rate limiting and AI usage enforcement remain pending and are required before wider public sharing.
+- The live OpenAI smoke request fell back because the model returned an invalid memory update. This was safely contained, but continued fallback frequency should be monitored.
 - Memory updates, suspicion deltas, and suggested votes are validated but intentionally not persisted or applied in issue #4.
 - The in-app browser surface was unavailable, so Playwright CLI provided desktop/mobile interaction and screenshot verification.
 - Public browser clients must not query hidden-role tables directly; RLS is enabled and repository access uses the server-only service role key.
