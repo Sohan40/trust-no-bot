@@ -88,6 +88,7 @@ Start here:
 - [`docs/monetization.md`](./docs/monetization.md) - pricing and premium ideas
 - [`docs/codex_workflow.md`](./docs/codex_workflow.md) - how to implement with Codex using issues
 - [`docs/launch_plan.md`](./docs/launch_plan.md) - alpha/beta launch plan
+- [`docs/deployment.md`](./docs/deployment.md) - Vercel environment setup and production smoke checklist
 
 ## Codex memory rule
 

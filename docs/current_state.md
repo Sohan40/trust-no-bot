@@ -29,7 +29,9 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - The Game Director uses one structured OpenAI Responses API call per day discussion or human question, with Zod validation and mocked fallback dialogue.
 - Model output can provide dialogue and advisory memory/suspicion/vote data, but only validated public dialogue is currently applied.
 - Unsafe questions and direct named-player role/team attribution are rejected before they reach browser-visible state, while ordinary suspicion language remains allowed.
-- Public deployment has not been configured yet.
+- Issue #34 deployment readiness is implemented with lazy server environment validation, a complete Vercel setup guide, and a production smoke checklist.
+- Missing Supabase runtime configuration produces clear server-side errors without exposing details through API responses; missing OpenAI configuration uses the safe mocked-dialogue fallback.
+- Production Vercel deployment has not been configured yet.
 
 ## Current architecture decision
 
@@ -102,14 +104,21 @@ Use this order for the next-week MVP:
   - Strict Zod input/output schemas, compact prompts, safety checks, and deterministic fallback provider.
   - Day discussion and question response generation integrated into the persisted action route.
   - Engine accepts only validated public dialogue lines; roles, life state, votes, phases, and winners remain deterministic.
+- Issue #34 Vercel deployment readiness implemented:
+  - `lib/env/config.ts` and `lib/env/server.ts` centralize lazy environment validation.
+  - `.env.example` documents browser-visible and server-only configuration.
+  - `docs/deployment.md` covers Vercel setup, Supabase/OpenAI variables, safety checks, and the production smoke test.
+  - Environment tests cover clear missing-variable errors and namespace boundaries.
 
 ## In progress
 
-- Issue #4 OpenAI Game Director integration is implemented and verified locally with mocked provider tests.
+- Production environment configuration and deployment remain operational steps; issue #34 code and documentation are complete locally.
 
 ## Next recommended issue
 
-Finish the result/share-text experience, then prepare the Vercel deployment with environment variables, basic rate limits, and AI usage monitoring.
+Configure the documented Vercel environment, deploy a controlled preview/production build, and run the complete smoke checklist including a live OpenAI question.
+
+Add the planned usage limit before sharing the deployment beyond a controlled test audience.
 
 The next task must preserve anonymous-session ownership, hidden-role filtering, and the deterministic game-truth boundary.
 
@@ -126,8 +135,9 @@ The next task must preserve anonymous-session ownership, hidden-role filtering, 
 ## What works locally
 
 - `npm run typecheck` passes.
-- `npm test` passes with 34 engine and Game Director tests, including direct role-attribution rejection, allowed suspicion language, fallback, truth immutability, and hidden-role filtering.
-- `npm run build` passes and includes `/game/[gameId]` as a dynamic route.
+- `npm test` passes with 39 engine, Game Director, and environment safety tests, including direct role-attribution rejection, allowed suspicion language, fallback, truth immutability, hidden-role filtering, and environment namespace boundaries.
+- `npm run build` passes without `.env.local` or production secrets and includes `/game/[gameId]` as a dynamic route.
+- Environment validation tests confirm missing values are reported server-side without secret values, and server-only variables remain outside the `NEXT_PUBLIC_*` namespace.
 - `npm run dev -- --port 4318` serves the API-backed browser flow.
 - Live Supabase browser verification passed:
   - landing start created a persisted game and navigated to its dynamic route
@@ -142,6 +152,8 @@ The next task must preserve anonymous-session ownership, hidden-role filtering, 
 
 - Browser interaction coverage is currently manual; no automated component or browser test suite exists yet.
 - Automated Game Director tests use mock providers; a live OpenAI response smoke test is still recommended before public deployment.
+- No Vercel production deployment has been smoke-tested yet; follow `docs/deployment.md` after configuring the project.
+- Rate limiting and AI usage enforcement remain pending and are required before wider public sharing.
 - Memory updates, suspicion deltas, and suggested votes are validated but intentionally not persisted or applied in issue #4.
 - The in-app browser surface was unavailable, so Playwright CLI provided desktop/mobile interaction and screenshot verification.
 - Public browser clients must not query hidden-role tables directly; RLS is enabled and repository access uses the server-only service role key.
