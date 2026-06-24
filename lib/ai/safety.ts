@@ -31,21 +31,26 @@ export function isSafeDirectorMessage(
 
   return !hiddenRoles.some((player) => {
     const name = escapeRegExp(player.displayName);
-    const role = escapeRegExp(player.role);
-    const confirmedRole = new RegExp(
-      "\\b" + name +
-        "\\b.{0,24}\\b(?:confirmed|definitely|secretly)\\b.{0,16}\\b" +
-        role + "\\b",
+    const roleOrTeam =
+      "(?:mafia|detective|doctor|villager|village)(?:\\s+team)?";
+    const directRoleAttribution = new RegExp(
+      "\\b" + name + "\\b(?:'s)?(?:\\s+role)?\\s+" +
+        "(?:(?:is|was)(?:n't)?\\s+(?:not\\s+)?(?:on\\s+)?" +
+        "(?:(?:a|the)\\s+)?" + roleOrTeam +
+        "|checked\\s+as\\s+(?:not\\s+)?(?:(?:a|the)\\s+)?" +
+        roleOrTeam + ")\\b",
       "i",
     );
-    const explicitRole = new RegExp(
+    const emphaticRoleAttribution = new RegExp(
       "\\b" + name +
-        "\\b(?:'s)?\\s+(?:hidden|secret)\\s+role\\s+is\\s+(?:the\\s+)?" +
-        role + "\\b",
+        "\\b.{0,24}\\b(?:confirmed|definitely|secretly)\\b.{0,16}\\b" +
+        roleOrTeam + "\\b",
       "i",
     );
 
-    return confirmedRole.test(text) || explicitRole.test(text);
+    return (
+      directRoleAttribution.test(text) || emphaticRoleAttribution.test(text)
+    );
   });
 }
 

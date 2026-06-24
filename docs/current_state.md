@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-06-23
+Last updated: 2026-06-24
 
 ## Current goal
 
@@ -28,7 +28,7 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - Seeded night targets are selected from players sorted by persisted player ID, so reload ordering cannot change deterministic actions.
 - The Game Director uses one structured OpenAI Responses API call per day discussion or human question, with Zod validation and mocked fallback dialogue.
 - Model output can provide dialogue and advisory memory/suspicion/vote data, but only validated public dialogue is currently applied.
-- Unsafe questions and explicit hidden-role leaks are rejected before they reach browser-visible state.
+- Unsafe questions and direct named-player role/team attribution are rejected before they reach browser-visible state, while ordinary suspicion language remains allowed.
 - Public deployment has not been configured yet.
 
 ## Current architecture decision
@@ -126,7 +126,7 @@ The next task must preserve anonymous-session ownership, hidden-role filtering, 
 ## What works locally
 
 - `npm run typecheck` passes.
-- `npm test` passes with 21 engine and Game Director tests, including structured output, fallback, safety, truth immutability, and hidden-role filtering.
+- `npm test` passes with 34 engine and Game Director tests, including direct role-attribution rejection, allowed suspicion language, fallback, truth immutability, and hidden-role filtering.
 - `npm run build` passes and includes `/game/[gameId]` as a dynamic route.
 - `npm run dev -- --port 4318` serves the API-backed browser flow.
 - Live Supabase browser verification passed:
