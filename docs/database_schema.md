@@ -5,6 +5,8 @@
 Issue #33 adds the initial Supabase migration at:
 
 - `supabase/migrations/20260623062909_issue_33_persistence.sql`
+- `supabase/migrations/20260624122759_issue_42_usage_limits.sql` adds atomic
+  anonymous-session usage claims and AI usage accounting.
 
 The migration implements the tables in this document plus `ai_usage_events`, enables RLS on all public tables, and intentionally adds no anon/authenticated table policies yet. MVP application access should go through server-only repository functions under `lib/db` so hidden roles are not exposed to browser clients.
 
@@ -135,9 +137,16 @@ create table anonymous_sessions (
   created_at timestamptz not null default now(),
   last_seen_at timestamptz not null default now(),
   games_started_today integer not null default 0,
+  ai_actions_today integer not null default 0,
   usage_date date not null default current_date
 );
 ```
+
+Issue #42 adds service-role-only `claim_anonymous_game_start` and
+`claim_anonymous_ai_action` database functions. Each function normalizes stale
+daily counters and checks/increments usage while holding the anonymous-session
+row lock, so concurrent requests cannot independently pass the same limit.
+Function execution is revoked from `public`, `anon`, and `authenticated`.
 
 ## ai_usage_events
 
@@ -156,6 +165,11 @@ create table ai_usage_events (
   created_at timestamptz not null default now()
 );
 ```
+
+An event is reserved immediately before each Game Director attempt. The event
+stores the game, provider, model, and purpose. Token and cost fields remain null
+until provider usage extraction is implemented. `question_response` events are
+also the persisted per-game question counter.
 
 ## Privacy notes
 

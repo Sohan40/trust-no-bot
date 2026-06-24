@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { GameOwnershipError } from "@/lib/db/repositories";
 import { GameRuleError } from "@/lib/game/voting";
 import { getAnonymousSessionId } from "@/lib/session/anonymous-session";
+import {
+  serializeUsageLimitError,
+  UsageLimitError,
+} from "@/lib/usage/limits";
 
 export async function requireAnonymousSession(): Promise<
   | { ok: true; sessionId: string }
@@ -38,6 +42,11 @@ export function handleGameRouteError(error: unknown): NextResponse {
 
   if (error instanceof GameRuleError) {
     return errorResponse(error.code, error.message, 400);
+  }
+
+  if (error instanceof UsageLimitError) {
+    const response = serializeUsageLimitError(error);
+    return NextResponse.json(response.body, { status: response.status });
   }
 
   console.error(error);

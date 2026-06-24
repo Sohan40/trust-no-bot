@@ -32,6 +32,8 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - Issue #34 deployment readiness is implemented with lazy server environment validation, a complete Vercel setup guide, and a production smoke checklist.
 - Missing Supabase runtime configuration produces clear server-side errors without exposing details through API responses; missing OpenAI configuration uses the safe mocked-dialogue fallback.
 - The configured production deployment is live at `https://trust-no-bot.vercel.app` on Vercel project `trust-no-bot`.
+- Issue #42 adds atomic anonymous-session limits: 3 game starts per day, 30 Game Director attempts per day, and 5 non-empty questions per game.
+- Game/AI counters reset when the persisted database date changes, and AI attempts record provider/model/purpose in `ai_usage_events` before the model call.
 
 ## Current architecture decision
 
@@ -109,16 +111,19 @@ Use this order for the next-week MVP:
   - `.env.example` documents browser-visible and server-only configuration.
   - `docs/deployment.md` covers Vercel setup, Supabase/OpenAI variables, safety checks, and the production smoke test.
   - Environment tests cover clear missing-variable errors and namespace boundaries.
+- Issue #42 anonymous usage limits implemented:
+  - Atomic service-role-only Supabase claim functions prevent concurrent requests from bypassing the final slot.
+  - Start and action routes return safe 429 errors before creating games or calling the Game Director.
+  - Environment overrides are optional; safe defaults apply when omitted.
+  - Usage-limit tests cover daily reset, all exceeded limits, safe responses, and normal under-limit behavior.
 
 ## In progress
 
-- Issue #34 code, documentation, environment configuration, production deployment, and live smoke testing are complete.
+- Issue #42 is implemented locally and its migration is applied; PR review, deployment, and Preview 429 smoke testing remain.
 
 ## Next recommended issue
 
-Add the planned usage limit before sharing the deployment beyond a controlled test audience.
-
-Monitor and tighten Game Director advisory-output validation if live OpenAI responses continue to fall back because of invalid memory updates.
+Review, merge, and deploy issue #42, then run the documented Preview 429 smoke check before wider sharing.
 
 The next task must preserve anonymous-session ownership, hidden-role filtering, and the deterministic game-truth boundary.
 
@@ -135,7 +140,7 @@ The next task must preserve anonymous-session ownership, hidden-role filtering, 
 ## What works locally
 
 - `npm run typecheck` passes.
-- `npm test` passes with 39 engine, Game Director, and environment safety tests, including direct role-attribution rejection, allowed suspicion language, fallback, truth immutability, hidden-role filtering, and environment namespace boundaries.
+- `npm test` passes with 46 engine, Game Director, environment, and usage-limit tests, including daily reset, safe 429 responses, and normal under-limit gameplay.
 - `npm run build` passes without `.env.local` or production secrets and includes `/game/[gameId]` as a dynamic route.
 - Environment validation tests confirm missing values are reported server-side without secret values, and server-only variables remain outside the `NEXT_PUBLIC_*` namespace.
 - `npm run dev -- --port 4318` serves the API-backed browser flow.
@@ -155,13 +160,15 @@ The next task must preserve anonymous-session ownership, hidden-role filtering, 
   - a live OpenAI request was attempted; invalid advisory memory output was rejected and mocked dialogue safely replaced it
   - voting completed a game, rendered a result, revealed all seven roles after game over, and persisted the completed state across reload
   - no hidden AI role/team fields appeared before game over
-  - Vercel runtime logs contained no HTTP 500 responses during the smoke window
+- Vercel runtime logs contained no HTTP 500 responses during the smoke window
+- The issue #42 Supabase migration is applied and a rolled-back SQL verification passed game, AI action, question, daily reset, and usage-event assertions.
 
 ## Known risks or bugs
 
 - Browser interaction coverage is currently manual; no automated component or browser test suite exists yet.
 - Automated Game Director tests use mock providers; a live OpenAI response smoke test is still recommended before public deployment.
-- Rate limiting and AI usage enforcement remain pending and are required before wider public sharing.
+- Anonymous-cookie limits reduce accidental/database/OpenAI abuse but can be bypassed by clearing cookies; they are not IP- or identity-based rate limiting.
+- AI usage events count reserved provider attempts, including failed calls that use fallback, and currently store null token/cost values.
 - The live OpenAI smoke request fell back because the model returned an invalid memory update. This was safely contained, but continued fallback frequency should be monitored.
 - Memory updates, suspicion deltas, and suggested votes are validated but intentionally not persisted or applied in issue #4.
 - The in-app browser surface was unavailable, so Playwright CLI provided desktop/mobile interaction and screenshot verification.

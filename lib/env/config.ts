@@ -3,6 +3,9 @@ export type Environment = Readonly<Record<string, string | undefined>>;
 export const SERVER_ONLY_ENV_NAMES = [
   "OPENAI_API_KEY",
   "OPENAI_MODEL",
+  "MAX_AI_ACTIONS_PER_DAY",
+  "MAX_GAMES_PER_DAY",
+  "MAX_QUESTIONS_PER_GAME",
   "SUPABASE_SERVICE_ROLE_KEY",
 ] as const;
 

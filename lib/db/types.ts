@@ -17,11 +17,21 @@ export type MessageVisibility = "public" | "private" | "system";
 export type NightActionType = "mafia_kill" | "doctor_save" | "detective_check";
 
 export type AnonymousSessionRow = {
+  ai_actions_today: number;
   id: string;
   created_at: string;
   last_seen_at: string;
   games_started_today: number;
   usage_date: string;
+};
+
+export type UsageClaimRow = {
+  allowed: boolean;
+  limit_reason: string | null;
+  usage_date: string;
+  games_started_today: number;
+  ai_actions_today: number;
+  questions_submitted_for_game: number;
 };
 
 export type GameRow = {
@@ -120,8 +130,8 @@ export type Database = {
     Tables: {
       anonymous_sessions: {
         Row: AnonymousSessionRow;
-        Insert: Omit<AnonymousSessionRow, "created_at" | "last_seen_at" | "games_started_today" | "usage_date"> &
-          Partial<Pick<AnonymousSessionRow, "created_at" | "last_seen_at" | "games_started_today" | "usage_date">>;
+        Insert: Omit<AnonymousSessionRow, "ai_actions_today" | "created_at" | "last_seen_at" | "games_started_today" | "usage_date"> &
+          Partial<Pick<AnonymousSessionRow, "ai_actions_today" | "created_at" | "last_seen_at" | "games_started_today" | "usage_date">>;
         Update: Partial<AnonymousSessionRow>;
         Relationships: [];
       };
@@ -176,7 +186,27 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      claim_anonymous_game_start: {
+        Args: {
+          p_session_id: string;
+          p_daily_limit: number;
+        };
+        Returns: UsageClaimRow[];
+      };
+      claim_anonymous_ai_action: {
+        Args: {
+          p_session_id: string;
+          p_game_id: string;
+          p_purpose: string;
+          p_provider: string;
+          p_model: string;
+          p_daily_limit: number;
+          p_question_limit: number;
+        };
+        Returns: UsageClaimRow[];
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
