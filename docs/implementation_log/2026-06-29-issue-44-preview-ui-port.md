@@ -44,6 +44,15 @@ To keep the single-player MVP playable, `ROLE_REVEAL` now advances to
 `DAY_DISCUSSION`. The first room action is discussion/questioning, while later
 night phases and the dead-human terminal rule still work as before.
 
+## Follow-Up Chat Pacing Fix
+
+After manual review against the preview, discussion still felt like a batch
+report because the API response was rendered all at once. `Transcript` now keeps
+the full persisted message array as source of truth but reveals newly arrived
+messages one at a time. Pending advance/question/vote actions show a
+typing/counting indicator until the server response lands, and queued discussion
+or question lines then appear with short per-message delays.
+
 ## Validation
 
 - `npm run typecheck`

@@ -1,16 +1,56 @@
 "use client";
 
 import { MessageSquare, Sparkles } from "lucide-react";
-import { useEffect, useRef } from "react";
-import type { Message, PlayerId } from "@/lib/game/types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { AvailableAction, Message, PlayerId } from "@/lib/game/types";
 
 type TranscriptProps = {
   humanPlayerId: PlayerId;
+  pendingAction: AvailableAction | null;
   messages: Message[];
 };
 
-export function Transcript({ humanPlayerId, messages }: TranscriptProps) {
+export function Transcript({
+  humanPlayerId,
+  messages,
+  pendingAction,
+}: TranscriptProps) {
   const listRef = useRef<HTMLDivElement>(null);
+  const previousMessageIdsRef = useRef(messages.map((message) => message.id));
+  const [visibleCount, setVisibleCount] = useState(messages.length);
+  const visibleMessages = useMemo(
+    () => messages.slice(0, visibleCount),
+    [messages, visibleCount],
+  );
+  const queuedMessage = messages[visibleCount] ?? null;
+  const isRevealingMessages = visibleCount < messages.length;
+  const showTyping = pendingAction !== null || isRevealingMessages;
+
+  useEffect(() => {
+    const previousIds = previousMessageIdsRef.current;
+    const nextIds = messages.map((message) => message.id);
+    const isSameTranscript = previousIds.every(
+      (id, index) => nextIds[index] === id,
+    );
+
+    if (!isSameTranscript || messages.length < previousIds.length) {
+      setVisibleCount(messages.length);
+    }
+
+    previousMessageIdsRef.current = nextIds;
+  }, [messages]);
+
+  useEffect(() => {
+    if (visibleCount >= messages.length) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setVisibleCount((count) => Math.min(count + 1, messages.length));
+    }, getRevealDelay(messages[visibleCount]));
+
+    return () => window.clearTimeout(timer);
+  }, [messages, visibleCount]);
 
   useEffect(() => {
     const list = listRef.current;
@@ -18,7 +58,7 @@ export function Transcript({ humanPlayerId, messages }: TranscriptProps) {
     if (list) {
       list.scrollTop = list.scrollHeight;
     }
-  }, [messages.length]);
+  }, [showTyping, visibleMessages.length]);
 
   return (
     <section className="flex min-h-[520px] min-w-0 flex-col rounded-2xl border border-[color-mix(in_srgb,var(--line)_72%,transparent)] bg-[color-mix(in_srgb,var(--panel)_52%,transparent)] backdrop-blur">
@@ -37,20 +77,85 @@ export function Transcript({ humanPlayerId, messages }: TranscriptProps) {
         className="flex-1 space-y-2.5 overflow-y-auto p-4"
         ref={listRef}
       >
-        {messages.length === 0 ? (
+        {visibleMessages.length === 0 ? (
           <p className="rounded-lg border border-[color-mix(in_srgb,var(--line)_60%,transparent)] bg-[var(--surface)] px-3 py-3 text-sm leading-6 text-[var(--muted)]">
             The room is quiet for now.
           </p>
         ) : null}
-        {messages.map((message) => (
+        {visibleMessages.map((message) => (
           <MessageRow
             humanPlayerId={humanPlayerId}
             key={message.id}
             message={message}
           />
         ))}
+        {showTyping ? (
+          <TypingIndicator
+            label={getTypingLabel(queuedMessage, pendingAction)}
+          />
+        ) : null}
       </div>
     </section>
+  );
+}
+
+function getRevealDelay(message: Message | undefined): number {
+  if (!message) {
+    return 520;
+  }
+
+  if (message.visibility === "system" || message.speakerId === "system") {
+    return 420;
+  }
+
+  const wordCount = message.text.trim().split(/\s+/).filter(Boolean).length;
+  return Math.min(950, Math.max(520, wordCount * 48));
+}
+
+function getTypingLabel(
+  queuedMessage: Message | null,
+  pendingAction: AvailableAction | null,
+): string {
+  if (queuedMessage && queuedMessage.speakerId !== "system") {
+    return `${queuedMessage.speakerName} is typing`;
+  }
+
+  if (queuedMessage) {
+    return "The room is updating";
+  }
+
+  if (pendingAction === "ASK_QUESTION") {
+    return "The room is answering";
+  }
+
+  if (pendingAction === "ADVANCE_PHASE") {
+    return "The room is thinking";
+  }
+
+  if (pendingAction === "VOTE") {
+    return "Votes are being counted";
+  }
+
+  return "The room is typing";
+}
+
+function TypingIndicator({ label }: { label: string }) {
+  return (
+    <div className="fade-up flex gap-2.5">
+      <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-[var(--surface-elevated)] text-[10px] font-bold uppercase text-[var(--muted)]">
+        ...
+      </div>
+      <div className="min-w-0 rounded-2xl rounded-tl-sm border border-[color-mix(in_srgb,var(--line)_62%,transparent)] bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] px-3.5 py-2">
+        <div className="font-mono-label mb-1 text-[10px] uppercase tracking-wider text-[var(--muted)]">
+          {label}
+        </div>
+        <div className="flex h-4 items-center gap-1" aria-hidden="true">
+          <span className="typing-dot" />
+          <span className="typing-dot [animation-delay:140ms]" />
+          <span className="typing-dot [animation-delay:280ms]" />
+        </div>
+      </div>
+    </div>
   );
 }
 

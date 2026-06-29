@@ -37,6 +37,7 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - Issue #44 ports the preview-44 dark interrogation-room visual design into the real persisted app flow without changing backend game logic.
 - The landing page, role reveal, sticky phase header, player rail, transcript bubbles, action panel, red vote modal, and result/share card now use the amber/danger cinematic theme.
 - A post-review gameplay fix now moves the player from role reveal into Day 1 Discussion instead of first-night resolution, preventing a new game from ending before the player can question or vote.
+- A post-review chat pacing fix now reveals newly returned transcript messages one at a time with a typing indicator, so discussion feels closer to a live chat while still using persisted API state.
 
 ## Current architecture decision
 
@@ -129,6 +130,10 @@ Use this order for the next-week MVP:
   - `ROLE_REVEAL` now advances to `DAY_DISCUSSION` instead of `NIGHT_ACTIONS`.
   - Added a regression test proving Enter Room starts active Day 1 Discussion.
   - The existing dead-human terminal rule still applies later if the human dies after gameplay has started.
+- Issue #44 chat pacing fix:
+  - `Transcript` keeps persisted messages as the source of truth but renders newly arrived messages through a timed visible queue.
+  - Pending advance/question/vote actions show a typing/counting indicator until the API returns.
+  - New discussion/question batches reveal line-by-line instead of appearing as a single dump.
 
 ## In progress
 
@@ -179,6 +184,7 @@ The next task must preserve anonymous-session ownership, hidden-role filtering, 
   - landing Start Game created persisted games through the real API
   - role reveal rendered a confidential card and advanced through `ADVANCE_PHASE` into Day 1 Discussion
   - the sticky phase header, player rail, transcript, desktop/mobile action panel, question input, red vote modal, and result/share card rendered
+  - discussion/question messages now display through a typing indicator and line-by-line reveal
   - one real game completed and revealed roles only after game over
   - GET `/api/game/[gameId]` omitted AI `role`/`team` before game over and included them after completion
   - a same-session fourth game start rendered the safe 429 message: `You have reached today's game limit. Try again tomorrow.`

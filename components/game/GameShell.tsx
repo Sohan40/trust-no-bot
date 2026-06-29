@@ -63,6 +63,7 @@ export function GameShell({
               <Transcript
                 humanPlayerId={state.humanPlayerId}
                 messages={state.messages}
+                pendingAction={pendingAction}
               />
             </div>
 
