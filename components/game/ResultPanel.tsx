@@ -1,4 +1,7 @@
+import { RotateCcw, Share2 } from "lucide-react";
+import { ShareResultButton } from "@/components/game/ShareResultButton";
 import { StartGameButton } from "@/components/game/StartGameButton";
+import { getRoleIcon } from "@/components/game/RoleReveal";
 import type { VisibleGameState } from "@/lib/game/types";
 
 type ResultPanelProps = {
@@ -8,48 +11,150 @@ type ResultPanelProps = {
 export function ResultPanel({ state }: ResultPanelProps) {
   const villageWon = state.game.winner === "villagers";
   const result = state.result;
+  const human = state.publicPlayers.find(
+    (player) => player.id === state.humanPlayerId,
+  );
+  const aliveCount = state.publicPlayers.filter((player) => player.isAlive).length;
+  const shareText =
+    result?.shareText ??
+    `I played Trust No Bot.\nResult: ${
+      villageWon ? "Won" : "Lost"
+    }\nMode: Classic`;
 
   return (
-    <aside className="self-start rounded-lg border border-[#4b4028] bg-[#171711] p-4 lg:sticky lg:top-4">
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#e3b75f]">
-        Game Over
-      </p>
-      <h2 className="mt-2 text-2xl font-black text-white">
-        {villageWon ? "Village wins" : "Mafia wins"}
-      </h2>
-      <p className="mt-3 text-sm leading-6 text-[#d4d7df]">
-        {result?.summary ?? "The final roles are now revealed."}
-      </p>
+    <section className="mx-auto max-w-2xl space-y-4 py-2">
+      <div
+        className={
+          villageWon
+            ? "fade-up rounded-2xl border border-[color-mix(in_srgb,var(--success)_42%,transparent)] bg-[color-mix(in_srgb,var(--success)_7%,transparent)] p-6 text-center backdrop-blur"
+            : "glow-danger fade-up rounded-2xl border border-[color-mix(in_srgb,var(--danger)_42%,transparent)] bg-[color-mix(in_srgb,var(--danger)_7%,transparent)] p-6 text-center backdrop-blur"
+        }
+      >
+        <div className="font-mono-label text-[11px] uppercase tracking-[0.25em] text-[var(--muted)]">
+          Game over · Day {state.game.dayNumber}
+        </div>
+        <h1
+          className={
+            villageWon
+              ? "text-glow mt-1 text-4xl font-bold tracking-normal text-[var(--success)]"
+              : "text-glow mt-1 text-4xl font-bold tracking-normal text-[var(--danger-strong)]"
+          }
+        >
+          {villageWon ? "Villagers Win" : "Mafia Wins"}
+        </h1>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+          {human?.isAlive ? "You survived the round." : "You were eliminated."}
+        </p>
+        {result?.summary ? (
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-[color-mix(in_srgb,var(--foreground)_84%,transparent)]">
+            {result.summary}
+          </p>
+        ) : null}
+      </div>
 
-      <div className="mt-5 border-t border-[#3a3528] pt-4">
-        <h3 className="text-sm font-bold text-white">Role reveal</h3>
-        <div className="mt-3 divide-y divide-[#302f2a]">
-          {state.publicPlayers.map((player) => (
-            <div
-              className="flex items-center justify-between gap-3 py-2.5 text-sm"
-              key={player.id}
-            >
-              <span className="min-w-0 truncate text-[#d9dde6]">
-                {player.displayName}
-              </span>
-              <span className="shrink-0 font-bold text-[#f3d48d]">
-                {player.role ?? "Hidden"}
-              </span>
-            </div>
-          ))}
+      <div className="fade-up rounded-2xl border border-[color-mix(in_srgb,var(--line)_72%,transparent)] bg-[color-mix(in_srgb,var(--panel)_70%,transparent)] p-5 backdrop-blur">
+        <div className="font-mono-label mb-3 text-[10px] uppercase tracking-wider text-[var(--muted)]">
+          Revealed roles
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {state.publicPlayers.map((player) => {
+            const role = player.role ?? "Villager";
+            const Icon = getRoleIcon(role);
+            const isMafia = player.role === "Mafia";
+
+            return (
+              <div
+                className={
+                  isMafia
+                    ? "flex items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--danger)_54%,transparent)] bg-[var(--surface)] p-2.5"
+                    : "flex items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--line)_68%,transparent)] bg-[var(--surface)] p-2.5"
+                }
+                key={player.id}
+              >
+                <div
+                  className={
+                    isMafia
+                      ? "grid size-9 shrink-0 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--danger)_16%,transparent)] text-[var(--danger-strong)]"
+                      : "grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--surface-elevated)] text-[color-mix(in_srgb,var(--foreground)_82%,transparent)]"
+                  }
+                >
+                  <Icon className="size-4" aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-[var(--foreground)]">
+                    {player.displayName}
+                  </div>
+                  <div
+                    className={
+                      isMafia
+                        ? "text-[11px] text-[var(--danger-strong)]"
+                        : "text-[11px] text-[var(--muted)]"
+                    }
+                  >
+                    {player.role ?? "Hidden"}
+                    {!player.isAlive ? " · dead" : ""}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {result?.shareText ? (
-        <blockquote className="mt-5 border-l-2 border-[#e3b75f] pl-3 text-sm leading-6 text-[#c8c9c4]">
-          {result.shareText}
-        </blockquote>
-      ) : null}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Stat label="Result" value={villageWon ? "Village held" : "Mafia survived"} tone={villageWon ? "success" : "danger"} />
+        <Stat label="Survivors" value={`${aliveCount} alive`} />
+        <Stat label="Your role" value={state.privateInfo.role} />
+      </div>
 
-      <StartGameButton
-        className="focus-ring mt-5 min-h-11 w-full rounded-md bg-[#e3b75f] px-4 text-sm font-bold text-[#12100a] disabled:cursor-wait disabled:opacity-70"
-        label="Play Again"
-      />
-    </aside>
+      <div className="glow-amber fade-up rounded-2xl border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--panel)_80%,transparent)] p-5 backdrop-blur">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="font-mono-label text-[10px] uppercase tracking-wider text-[var(--accent)]">
+            share card
+          </div>
+          <Share2 className="size-3.5 text-[var(--accent)]" aria-hidden="true" />
+        </div>
+        <pre className="whitespace-pre-wrap rounded-lg border border-[color-mix(in_srgb,var(--line)_70%,transparent)] bg-[color-mix(in_srgb,#101116_76%,transparent)] p-3 font-mono-label text-xs leading-relaxed text-[color-mix(in_srgb,var(--foreground)_92%,transparent)]">
+          {shareText}
+        </pre>
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <ShareResultButton shareText={shareText} />
+        <StartGameButton className="focus-ring inline-flex items-center justify-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--line)_70%,transparent)] bg-[var(--surface)] px-4 py-3 text-sm font-semibold text-[var(--foreground)] disabled:cursor-wait disabled:opacity-70">
+          <RotateCcw className="size-4" aria-hidden="true" />
+          Replay
+        </StartGameButton>
+      </div>
+    </section>
+  );
+}
+
+function Stat({
+  label,
+  tone,
+  value,
+}: {
+  label: string;
+  tone?: "success" | "danger";
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-[color-mix(in_srgb,var(--line)_72%,transparent)] bg-[color-mix(in_srgb,var(--panel)_70%,transparent)] p-4 backdrop-blur">
+      <div className="font-mono-label text-[10px] uppercase tracking-wider text-[var(--muted)]">
+        {label}
+      </div>
+      <div
+        className={
+          tone === "success"
+            ? "mt-1 text-sm font-semibold text-[var(--success)]"
+            : tone === "danger"
+              ? "mt-1 text-sm font-semibold text-[var(--danger-strong)]"
+              : "mt-1 text-sm font-semibold text-[var(--foreground)]"
+        }
+      >
+        {value}
+      </div>
+    </div>
   );
 }

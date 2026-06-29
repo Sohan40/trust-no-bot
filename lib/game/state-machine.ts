@@ -91,10 +91,10 @@ export function advanceGamePhase(
 
   switch (game.phase) {
     case "ROLE_REVEAL":
-      return updatePhase(game, "NIGHT_ACTIONS", [
+      return updatePhase(game, "DAY_DISCUSSION", [
         createMessage(game, {
           visibility: "system",
-          text: "Night falls. The room goes quiet while hidden roles act.",
+          text: "The first day begins. Read the room before you ask your question.",
           intent: "phase_advance",
         }),
       ]);

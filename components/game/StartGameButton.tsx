@@ -1,15 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { startClassicGame } from "@/lib/game/client";
 
 type StartGameButtonProps = {
+  children?: ReactNode;
   className?: string;
   label?: string;
 };
 
 export function StartGameButton({
+  children,
   className,
   label = "Start Game",
 }: StartGameButtonProps) {
@@ -43,11 +46,11 @@ export function StartGameButton({
         onClick={handleStart}
         type="button"
       >
-        {isStarting ? "Starting Game..." : label}
+        {isStarting ? "Starting Game..." : (children ?? label)}
       </button>
       {error ? (
         <p
-          className="mt-2 max-w-sm text-sm leading-5 text-[#ef8a8a]"
+          className="mt-2 max-w-sm text-sm leading-5 text-[var(--danger-strong)]"
           role="alert"
         >
           {error}

@@ -46,6 +46,19 @@ describe("Classic Mode role assignment", () => {
 });
 
 describe("Classic Mode night actions", () => {
+  it("starts gameplay with day discussion after role reveal", () => {
+    const transition = advanceGamePhase(createGame("ROLE_REVEAL"));
+
+    expect(transition.game.status).toBe("active");
+    expect(transition.game.phase).toBe("DAY_DISCUSSION");
+    expect(transition.game.phaseLabel).toBe("Day 1 Discussion");
+    expect(
+      transition.newMessages.some((message) =>
+        message.text.includes("The first day begins"),
+      ),
+    ).toBe(true);
+  });
+
   it("chooses the same seeded targets regardless of persisted player order", () => {
     const players = createPlayers();
     const shuffledPlayers = [

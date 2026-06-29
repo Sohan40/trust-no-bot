@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-06-24
+Last updated: 2026-06-29
 
 ## Current goal
 
@@ -34,6 +34,10 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - The configured production deployment is live at `https://trust-no-bot.vercel.app` on Vercel project `trust-no-bot`.
 - Issue #42 adds atomic anonymous-session limits: 3 game starts per day, 30 Game Director attempts per day, and 5 non-empty questions per game.
 - Game/AI counters reset when the persisted database date changes, and AI attempts record provider/model/purpose in `ai_usage_events` before the model call.
+- Issue #44 ports the preview-44 dark interrogation-room visual design into the real persisted app flow without changing backend game logic.
+- The landing page, role reveal, sticky phase header, player rail, transcript bubbles, action panel, red vote modal, and result/share card now use the amber/danger cinematic theme.
+- A post-review gameplay fix now moves the player from role reveal into Day 1 Discussion instead of first-night resolution, preventing a new game from ending before the player can question or vote.
+- A post-review chat pacing fix now reveals newly returned transcript messages one at a time with a typing indicator, so discussion feels closer to a live chat while still using persisted API state.
 
 ## Current architecture decision
 
@@ -116,14 +120,28 @@ Use this order for the next-week MVP:
   - Start and action routes return safe 429 errors before creating games or calling the Game Director.
   - Environment overrides are optional; safe defaults apply when omitted.
   - Usage-limit tests cover daily reset, all exceeded limits, safe responses, and normal under-limit behavior.
+- Issue #44 preview UI port implemented:
+  - `app/globals.css` now contains the dark room tokens, scanline overlay, amber/danger glows, and motion utilities.
+  - `app/page.tsx` and `components/game/StartGameButton.tsx` now render the preview-style landing CTA while still calling `POST /api/game/start`.
+  - `components/game/GameShell.tsx`, `RoleReveal.tsx`, `PlayerCard.tsx`, `Transcript.tsx`, `ActionPanel.tsx`, `ResultPanel.tsx`, and `ShareResultButton.tsx` now render the preview-inspired game room, role reveal, red vote modal, and result/share card from `VisibleGameState`.
+  - The question target selector passes `targetPlayerId` through the existing action payload; deterministic rules and API routes remain unchanged.
+  - `lucide-react` was added for production iconography matching the preview direction.
+- Issue #44 gameplay regression fix:
+  - `ROLE_REVEAL` now advances to `DAY_DISCUSSION` instead of `NIGHT_ACTIONS`.
+  - Added a regression test proving Enter Room starts active Day 1 Discussion.
+  - The existing dead-human terminal rule still applies later if the human dies after gameplay has started.
+- Issue #44 chat pacing fix:
+  - `Transcript` keeps persisted messages as the source of truth but renders newly arrived messages through a timed visible queue.
+  - Pending advance/question/vote actions show a typing/counting indicator until the API returns.
+  - New discussion/question batches reveal line-by-line instead of appearing as a single dump.
 
 ## In progress
 
-- Issue #42 is implemented locally and its migration is applied; PR review, deployment, and Preview 429 smoke testing remain.
+- Issue #44 is implemented locally; PR review, preview deployment, and production deployment remain.
 
 ## Next recommended issue
 
-Review, merge, and deploy issue #42, then run the documented Preview 429 smoke check before wider sharing.
+Review, merge, and deploy issue #44, then run the documented production smoke checklist on the remodeled UI before wider sharing.
 
 The next task must preserve anonymous-session ownership, hidden-role filtering, and the deterministic game-truth boundary.
 
@@ -141,7 +159,7 @@ The next task must preserve anonymous-session ownership, hidden-role filtering, 
 
 - `npm run typecheck` passes.
 - `npm test` passes with 46 engine, Game Director, environment, and usage-limit tests, including daily reset, safe 429 responses, and normal under-limit gameplay.
-- `npm run build` passes without `.env.local` or production secrets and includes `/game/[gameId]` as a dynamic route.
+- `npm run build` passes and includes `/game/[gameId]` as a dynamic route.
 - Environment validation tests confirm missing values are reported server-side without secret values, and server-only variables remain outside the `NEXT_PUBLIC_*` namespace.
 - `npm run dev -- --port 4318` serves the API-backed browser flow.
 - Live Supabase browser verification passed:
@@ -162,6 +180,14 @@ The next task must preserve anonymous-session ownership, hidden-role filtering, 
   - no hidden AI role/team fields appeared before game over
 - Vercel runtime logs contained no HTTP 500 responses during the smoke window
 - The issue #42 Supabase migration is applied and a rolled-back SQL verification passed game, AI action, question, daily reset, and usage-event assertions.
+- Issue #44 local browser smoke on `http://localhost:4318` passed:
+  - landing Start Game created persisted games through the real API
+  - role reveal rendered a confidential card and advanced through `ADVANCE_PHASE` into Day 1 Discussion
+  - the sticky phase header, player rail, transcript, desktop/mobile action panel, question input, red vote modal, and result/share card rendered
+  - discussion/question messages now display through a typing indicator and line-by-line reveal
+  - one real game completed and revealed roles only after game over
+  - GET `/api/game/[gameId]` omitted AI `role`/`team` before game over and included them after completion
+  - a same-session fourth game start rendered the safe 429 message: `You have reached today's game limit. Try again tomorrow.`
 
 ## Known risks or bugs
 
@@ -177,6 +203,7 @@ The next task must preserve anonymous-session ownership, hidden-role filtering, 
 - Hidden AI role/team data is filtered out of API-visible state until game over.
 - Stable player ID sorting is the current deterministic target-order key; a dedicated seat index remains a possible later schema improvement.
 - Unexpected API failures do not expose raw environment, Supabase, Postgres, or implementation error messages to clients.
+- The remodeled UI still depends on manual browser smoke coverage; there is no automated component or visual regression suite yet.
 
 ## What Codex must update after every task
 
