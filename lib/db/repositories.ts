@@ -13,7 +13,9 @@ import type {
   GameVoteRow,
   NightActionRow,
   PersistedGameState,
+  UsageClaimRow,
 } from "@/lib/db/types";
+import type { AIUsagePurpose } from "@/lib/usage/limits";
 
 type DbClient = SupabaseClient<Database>;
 
@@ -76,32 +78,71 @@ export async function upsertAnonymousSession(
   return data;
 }
 
-export async function incrementAnonymousSessionGameCount(
+export async function claimAnonymousSessionGameStart(
   sessionId: string,
+  dailyLimit: number,
   client?: DbClient,
-): Promise<AnonymousSessionRow> {
+): Promise<UsageClaimRow> {
   const db = getClient(client);
-  const session = await upsertAnonymousSession(sessionId, db);
-  const today = new Date().toISOString().slice(0, 10);
-  const gamesStartedToday =
-    session.usage_date === today ? session.games_started_today + 1 : 1;
-
   const { data, error } = await db
-    .from("anonymous_sessions")
-    .update({
-      games_started_today: gamesStartedToday,
-      usage_date: today,
-      last_seen_at: new Date().toISOString(),
-    })
-    .eq("id", sessionId)
-    .select()
-    .single();
+    .rpc("claim_anonymous_game_start", {
+      p_session_id: sessionId,
+      p_daily_limit: dailyLimit,
+    });
 
   if (error) {
     throw error;
   }
 
-  return data;
+  const claim = data?.[0];
+
+  if (!claim) {
+    throw new Error("Game-start usage claim returned no result.");
+  }
+
+  return claim;
+}
+
+export type ClaimAnonymousSessionAIActionInput = {
+  sessionId: string;
+  gameId: string;
+  purpose: AIUsagePurpose;
+  provider: string;
+  model: string;
+  dailyLimit: number;
+  questionLimit: number;
+};
+
+export async function claimAnonymousSessionAIAction(
+  input: ClaimAnonymousSessionAIActionInput,
+  client?: DbClient,
+): Promise<UsageClaimRow> {
+  const db = getClient(client);
+  const { data, error } = await db.rpc("claim_anonymous_ai_action", {
+    p_session_id: input.sessionId,
+    p_game_id: input.gameId,
+    p_purpose: input.purpose,
+    p_provider: input.provider,
+    p_model: input.model,
+    p_daily_limit: input.dailyLimit,
+    p_question_limit: input.questionLimit,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  const claim = data?.[0];
+
+  if (!claim) {
+    throw new Error("AI-action usage claim returned no result.");
+  }
+
+  if (!claim.allowed && claim.limit_reason === "game_not_found") {
+    throw new GameOwnershipError(input.gameId);
+  }
+
+  return claim;
 }
 
 export type CreateGameInput = Pick<

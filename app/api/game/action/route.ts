@@ -3,14 +3,23 @@ import {
   handleGameRouteError,
   requireAnonymousSession,
 } from "@/app/api/game/_shared";
-import { loadGameStateForSession } from "@/lib/db/repositories";
+import {
+  claimAnonymousSessionAIAction,
+  loadGameStateForSession,
+} from "@/lib/db/repositories";
 import { isSafeUserQuestion } from "@/lib/ai/safety";
+import { getServerGameDirectorUsageMetadata } from "@/lib/ai/server-director";
 import { persistedStateToGame } from "@/lib/game/persistence";
 import { persistTransitionForSession } from "@/lib/game/server-persistence";
 import {
   advanceGamePhaseWithDirector,
   submitPlayerQuestionWithDirector,
 } from "@/lib/game/server-transitions";
+import {
+  assertUsageClaimAllowed,
+  getAIUsagePurpose,
+} from "@/lib/usage/limits";
+import { getServerUsageLimits } from "@/lib/usage/server";
 
 type ActionBody = {
   gameId?: unknown;
@@ -61,6 +70,27 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const game = persistedStateToGame(persisted);
+    const usagePurpose = getAIUsagePurpose({
+      actionType: body.actionType,
+      phase: game.phase,
+      question,
+    });
+
+    if (usagePurpose) {
+      const limits = getServerUsageLimits();
+      const provider = getServerGameDirectorUsageMetadata();
+      const usageClaim = await claimAnonymousSessionAIAction({
+        sessionId: session.sessionId,
+        gameId: body.gameId,
+        purpose: usagePurpose,
+        provider: provider.provider,
+        model: provider.model,
+        dailyLimit: limits.aiActionsPerDay,
+        questionLimit: limits.questionsPerGame,
+      });
+      assertUsageClaimAllowed(usageClaim);
+    }
+
     const transition =
       body.actionType === "ADVANCE_PHASE"
         ? await advanceGamePhaseWithDirector(game)

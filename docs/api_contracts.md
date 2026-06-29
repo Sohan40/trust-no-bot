@@ -161,6 +161,18 @@ Response:
 }
 ```
 
+Usage limits return HTTP `429` with the same safe shape. Current codes are:
+
+- `DAILY_GAME_LIMIT_EXCEEDED` after 3 game starts for the anonymous session on
+  the current database date.
+- `DAILY_AI_ACTION_LIMIT_EXCEEDED` after 30 Game Director attempts for the
+  anonymous session on the current database date.
+- `GAME_QUESTION_LIMIT_EXCEEDED` after 5 non-empty question submissions for one
+  game.
+
+Limit checks use the server-owned anonymous session cookie and persisted
+counters. The client cannot supply or override usage counts.
+
 ## Future auth
 
 Early MVP can use anonymous session cookies.

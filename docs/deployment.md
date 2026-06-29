@@ -24,6 +24,9 @@ into source control.
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only secret | Required at runtime for persisted gameplay. Never add a `NEXT_PUBLIC_` prefix. |
 | `OPENAI_API_KEY` | Server-only secret | Required for live AI dialogue. If absent or a request fails, the Game Director safely uses mocked dialogue. |
 | `OPENAI_MODEL` | Server-only configuration | Optional model override. Defaults to `gpt-4.1-mini`. |
+| `MAX_GAMES_PER_DAY` | Server-only configuration | Optional positive integer. Defaults to `3`. |
+| `MAX_AI_ACTIONS_PER_DAY` | Server-only configuration | Optional positive integer. Defaults to `30`. |
+| `MAX_QUESTIONS_PER_GAME` | Server-only configuration | Optional positive integer. Defaults to `5`. |
 
 `NEXT_PUBLIC_*` values are embedded into browser code when referenced by client
 modules. They must never contain privileged credentials. The Supabase service
@@ -35,9 +38,10 @@ role key bypasses Row Level Security and is restricted to `server-only` modules.
    Next.js.
 2. Keep the repository root as the project root. The build command is
    `npm run build`; no custom output directory is needed.
-3. In **Project Settings > Environment Variables**, add all six variables from
+3. In **Project Settings > Environment Variables**, add the variables from
    `.env.example`. Store `SUPABASE_SERVICE_ROLE_KEY` and `OPENAI_API_KEY` as
-   sensitive server values.
+   sensitive server values. The three usage-limit variables may be omitted to
+   use their safe defaults.
 4. Apply the values to Production. Apply matching non-production credentials to
    Preview only when preview deployments should access a real backend.
 5. Redeploy after changing any environment variable. `NEXT_PUBLIC_*` values are
@@ -72,6 +76,10 @@ Record the deployment URL, commit SHA, test time, and tester with the results.
       `/api/game/[gameId]` response in browser developer tools. AI players must
       not include hidden `role` or `team` data. After game over, the reveal may
       include all roles.
+- [ ] **Usage limits:** In a protected Preview environment, temporarily use low
+      positive limit overrides and confirm the next request returns a safe 429
+      before a game row or AI usage event is created. Restore the intended
+      values and redeploy afterward.
 
 The live OpenAI question check is mandatory before public sharing. Automated
 tests use mocked providers and cannot prove the deployed key, model access, or
@@ -89,8 +97,12 @@ provider network path works.
   responses intentionally hide unexpected internal error details.
 - OpenAI failures must fall back to mocked dialogue; they must not block or
   corrupt persisted gameplay.
-- Add the planned usage limit before sharing the deployment beyond a controlled
-  smoke-test audience.
+- Usage limits are enforced by atomic, service-role-only database functions.
+  Non-empty questions and day-discussion generation consume AI action slots;
+  deterministic actions and empty question skips do not.
+- These are anonymous-cookie cost guardrails, not strong identity or IP abuse
+  prevention. Clearing cookies creates a new anonymous session, so wider public
+  sharing still needs monitoring.
 
 ## References
 

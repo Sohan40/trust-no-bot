@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import {
   appendGameMessages,
+  claimAnonymousSessionGameStart,
   createGame,
-  incrementAnonymousSessionGameCount,
   insertGamePlayers,
 } from "@/lib/db/repositories";
 import {
@@ -13,6 +13,8 @@ import { toVisibleGameState } from "@/lib/game/public-state";
 import { createClassicGame } from "@/lib/game/state-machine";
 import { getOrCreateAnonymousSessionId } from "@/lib/session/anonymous-session";
 import { errorResponse, handleGameRouteError } from "@/app/api/game/_shared";
+import { assertUsageClaimAllowed } from "@/lib/usage/limits";
+import { getServerUsageLimits } from "@/lib/usage/server";
 
 const originalClassicPlayerIds = [
   "human",
@@ -45,9 +47,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const sessionId = await getOrCreateAnonymousSessionId();
+    const limits = getServerUsageLimits();
+    const usageClaim = await claimAnonymousSessionGameStart(
+      sessionId,
+      limits.gamesPerDay,
+    );
+    assertUsageClaimAllowed(usageClaim);
     const seed = createSeed();
-
-    await incrementAnonymousSessionGameCount(sessionId);
 
     const row = await createGame({
       anonymous_session_id: sessionId,

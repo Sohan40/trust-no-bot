@@ -6,6 +6,8 @@ import {
   type GameDirectorOutput,
 } from "@/lib/ai/schemas";
 
+export const MOCK_AI_MODEL = "deterministic-mock-v1";
+
 export class MockAIProvider implements AIProvider {
   async generateStructured(request: AIProviderRequest): Promise<unknown> {
     if (request.schemaName !== "game_director_output") {

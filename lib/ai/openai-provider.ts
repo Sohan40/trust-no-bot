@@ -13,6 +13,8 @@ type OpenAIProviderOptions = {
   model?: string;
 };
 
+export const DEFAULT_OPENAI_MODEL = "gpt-4.1-mini";
+
 export class OpenAIProvider implements AIProvider {
   private readonly client: OpenAI;
   private readonly model: string;
@@ -30,7 +32,7 @@ export class OpenAIProvider implements AIProvider {
     this.model =
       options.model?.trim() ||
       getOptionalServerEnvironmentVariable("OPENAI_MODEL") ||
-      "gpt-4.1-mini";
+      DEFAULT_OPENAI_MODEL;
   }
 
   async generateStructured(request: AIProviderRequest): Promise<unknown> {
