@@ -1,9 +1,18 @@
 "use client";
 
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Crosshair,
+  Send,
+  XCircle,
+} from "lucide-react";
 import { useState } from "react";
 import type {
   AvailableAction,
   Phase,
+  PlayerId,
+  PublicPlayer,
   VisibleGameState,
 } from "@/lib/game/types";
 
@@ -12,7 +21,10 @@ type ActionPanelProps = {
   pendingAction: AvailableAction | null;
   error: string | null;
   onAdvance: () => Promise<boolean>;
-  onAskQuestion: (question: string) => Promise<boolean>;
+  onAskQuestion: (
+    question: string,
+    targetPlayerId?: PlayerId,
+  ) => Promise<boolean>;
   onVote: (targetPlayerId: string) => Promise<boolean>;
 };
 
@@ -25,7 +37,9 @@ export function ActionPanel({
   onVote,
 }: ActionPanelProps) {
   const [question, setQuestion] = useState("");
+  const [targetPlayerId, setTargetPlayerId] = useState<string>("all");
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [isVoteOpen, setIsVoteOpen] = useState(false);
   const canAdvance = state.availableActions.includes("ADVANCE_PHASE");
   const canAsk = state.availableActions.includes("ASK_QUESTION");
   const canVote = state.availableActions.includes("VOTE");
@@ -44,10 +58,14 @@ export function ActionPanel({
       return;
     }
 
-    const accepted = await onAskQuestion(trimmedQuestion);
+    const accepted = await onAskQuestion(
+      trimmedQuestion,
+      targetPlayerId === "all" ? undefined : targetPlayerId,
+    );
 
     if (accepted) {
       setQuestion("");
+      setTargetPlayerId("all");
     }
   }
 
@@ -60,26 +78,27 @@ export function ActionPanel({
 
     if (accepted) {
       setSelectedPlayerId(null);
+      setIsVoteOpen(false);
     }
   }
 
   return (
     <aside
       aria-busy={isBusy}
-      className="self-start rounded-lg border border-[#2d3547] bg-[#121722] p-4 lg:sticky lg:top-4"
+      className="self-start rounded-2xl border border-[color-mix(in_srgb,var(--line)_72%,transparent)] bg-[color-mix(in_srgb,var(--panel)_72%,transparent)] p-4 backdrop-blur lg:sticky lg:top-20"
     >
       <div className="mb-4">
-        <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-[#aab4c5]">
+        <h2 className="font-mono-label text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
           Action
         </h2>
-        <p className="mt-2 text-sm leading-6 text-[#c8d0df]">
+        <p className="mt-2 text-sm leading-6 text-[color-mix(in_srgb,var(--foreground)_78%,transparent)]">
           {getPhaseInstruction(state.game.phase, state.privateInfo.role)}
         </p>
       </div>
 
       {error ? (
         <p
-          className="mb-4 rounded-md border border-[#633b45] bg-[#24151a] px-3 py-2 text-sm leading-5 text-[#f0a5af]"
+          className="mb-4 rounded-lg border border-[color-mix(in_srgb,var(--danger)_44%,transparent)] bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] px-3 py-2 text-sm leading-5 text-[var(--danger-strong)]"
           role="alert"
         >
           {error}
@@ -87,85 +106,88 @@ export function ActionPanel({
       ) : null}
 
       {canAsk ? (
-        <form onSubmit={handleQuestionSubmit}>
-          <label
-            className="block text-sm font-semibold text-[#f5f7fb]"
-            htmlFor="question"
-          >
-            Ask the room
-          </label>
-          <textarea
-            className="focus-ring mt-2 min-h-28 w-full resize-none rounded-md border border-[#354059] bg-[#0c1018] px-3 py-3 text-sm text-white placeholder:text-[#6f7b91]"
-            disabled={isBusy}
-            id="question"
-            maxLength={500}
-            onChange={(event) => setQuestion(event.target.value)}
-            placeholder="What made you suspicious during the last discussion?"
-            value={question}
-          />
-          <div className="mt-2 flex items-center justify-between text-xs text-[#7f8ba0]">
+        <form className="flex flex-col gap-2" onSubmit={handleQuestionSubmit}>
+          <div className="flex items-center gap-2">
+            <label className="sr-only" htmlFor="question-target">
+              Question target
+            </label>
+            <select
+              className="focus-ring rounded-lg border border-[color-mix(in_srgb,var(--line)_72%,transparent)] bg-[var(--surface)] px-2.5 py-2 font-mono-label text-[11px] uppercase tracking-wider text-[var(--foreground)] outline-none"
+              disabled={isBusy}
+              id="question-target"
+              onChange={(event) => setTargetPlayerId(event.target.value)}
+              value={targetPlayerId}
+            >
+              <option value="all">All players</option>
+              {voteTargets.map((player) => (
+                <option key={player.id} value={player.id}>
+                  → {player.displayName}
+                </option>
+              ))}
+            </select>
+            {canAdvance ? (
+              <button
+                className="focus-ring ml-auto inline-flex items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--danger)_45%,transparent)] bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3 py-2 text-xs font-semibold text-[var(--danger-strong)] transition hover:bg-[color-mix(in_srgb,var(--danger)_18%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isBusy}
+                onClick={() => void onAdvance()}
+                type="button"
+              >
+                <Crosshair className="size-3.5" aria-hidden="true" />
+                {pendingAction === "ADVANCE_PHASE"
+                  ? "Skipping..."
+                  : getAdvanceLabel(state.game.phase)}
+              </button>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="sr-only" htmlFor="question">
+              Ask a question
+            </label>
+            <input
+              className="focus-ring min-w-0 flex-1 rounded-xl border border-[color-mix(in_srgb,var(--line)_72%,transparent)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--foreground)] outline-none placeholder:text-[color-mix(in_srgb,var(--muted)_72%,transparent)]"
+              disabled={isBusy}
+              id="question"
+              maxLength={500}
+              onChange={(event) => setQuestion(event.target.value)}
+              placeholder="Ask a question..."
+              value={question}
+            />
+            <button
+              aria-label="Send question"
+              className="focus-ring grid size-11 shrink-0 place-items-center rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)] transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={isBusy || question.trim().length === 0}
+              type="submit"
+            >
+              <Send className="size-4" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="flex items-center justify-between text-xs text-[var(--muted)]">
             <span>Public question</span>
             <span>{question.length}/500</span>
           </div>
-          <button
-            className="focus-ring mt-4 min-h-11 w-full rounded-md bg-[#e3b75f] px-4 text-sm font-bold text-[#12100a] disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={isBusy || question.trim().length === 0}
-            type="submit"
-          >
-            {pendingAction === "ASK_QUESTION" ? "Asking..." : "Ask Room"}
-          </button>
         </form>
       ) : null}
 
       {canVote ? (
-        <div>
-          <fieldset disabled={isBusy}>
-            <legend className="text-sm font-semibold text-[#f5f7fb]">
-              Choose one player
-            </legend>
-            <div className="mt-3 grid gap-2">
-              {voteTargets.map((player) => {
-                const isSelected = selectedPlayerId === player.id;
-
-                return (
-                  <button
-                    aria-pressed={isSelected}
-                    className={
-                      isSelected
-                        ? "focus-ring flex min-h-11 items-center justify-between rounded-md border border-[#e3b75f] bg-[#272315] px-3 text-left text-sm text-white"
-                        : "focus-ring flex min-h-11 items-center justify-between rounded-md border border-[#30384d] bg-[#151b28] px-3 text-left text-sm text-[#d8deea] hover:border-[#59647d]"
-                    }
-                    key={player.id}
-                    onClick={() => setSelectedPlayerId(player.id)}
-                    type="button"
-                  >
-                    <span>{player.displayName}</span>
-                    <span className="text-xs text-[#aeb7c7]">
-                      {isSelected ? "Selected" : "Choose"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
+        <div className="flex items-center gap-2">
+          <p className="min-w-0 flex-1 text-xs leading-5 text-[var(--muted)]">
+            Vote required. Choose who to eliminate.
+          </p>
           <button
-            className="focus-ring mt-4 min-h-11 w-full rounded-md bg-[#e3b75f] px-4 text-sm font-bold text-[#12100a] disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={isBusy || !selectedPlayerId}
-            onClick={handleVoteSubmit}
+            className="glow-danger focus-ring inline-flex items-center gap-1.5 rounded-xl bg-[var(--danger)] px-4 py-3 text-sm font-semibold text-[var(--danger-foreground)] transition hover:bg-[var(--danger-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isBusy}
+            onClick={() => setIsVoteOpen(true)}
             type="button"
           >
-            {pendingAction === "VOTE" ? "Submitting Vote..." : "Confirm Vote"}
+            <Crosshair className="size-4" aria-hidden="true" />
+            Open vote
           </button>
         </div>
       ) : null}
 
-      {canAdvance ? (
+      {canAdvance && !canAsk ? (
         <button
-          className={
-            canAsk
-              ? "focus-ring mt-3 min-h-11 w-full rounded-md border border-[#3a4257] px-4 text-sm font-semibold text-[#f3f5fa] disabled:cursor-not-allowed disabled:opacity-50"
-              : "focus-ring min-h-11 w-full rounded-md bg-[#e3b75f] px-4 text-sm font-bold text-[#12100a] disabled:cursor-not-allowed disabled:opacity-50"
-          }
+          className="glow-amber focus-ring min-h-12 w-full rounded-xl border border-[color-mix(in_srgb,var(--accent)_45%,transparent)] bg-[var(--accent)] px-4 text-sm font-bold text-[var(--accent-foreground)] transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={isBusy}
           onClick={() => void onAdvance()}
           type="button"
@@ -177,18 +199,144 @@ export function ActionPanel({
       ) : null}
 
       {!canAdvance && !canAsk && !canVote ? (
-        <p className="rounded-md border border-[#30384d] bg-[#0f141e] px-3 py-3 text-sm leading-6 text-[#aab4c5]">
+        <p className="rounded-lg border border-[color-mix(in_srgb,var(--line)_68%,transparent)] bg-[var(--surface)] px-3 py-3 text-sm leading-6 text-[var(--muted)]">
           The room is waiting for the next server update.
         </p>
       ) : null}
+
+      {isVoteOpen ? (
+        <VoteModal
+          isBusy={isBusy}
+          onClose={() => setIsVoteOpen(false)}
+          onConfirm={() => void handleVoteSubmit()}
+          players={voteTargets}
+          selectedPlayerId={selectedPlayerId}
+          setSelectedPlayerId={setSelectedPlayerId}
+        />
+      ) : null}
     </aside>
+  );
+}
+
+function VoteModal({
+  isBusy,
+  onClose,
+  onConfirm,
+  players,
+  selectedPlayerId,
+  setSelectedPlayerId,
+}: {
+  isBusy: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  players: PublicPlayer[];
+  selectedPlayerId: string | null;
+  setSelectedPlayerId: (playerId: string) => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#101116]/85 backdrop-blur-sm sm:items-center">
+      <section
+        aria-labelledby="vote-title"
+        aria-modal="true"
+        className="glow-danger fade-up w-full max-w-md rounded-t-3xl border border-[color-mix(in_srgb,var(--danger)_45%,transparent)] bg-[var(--panel)] p-5 sm:rounded-2xl"
+        role="dialog"
+      >
+        <div className="mb-4 flex items-start gap-3">
+          <div className="grid size-10 place-items-center rounded-xl bg-[color-mix(in_srgb,var(--danger)_16%,transparent)] text-[var(--danger-strong)]">
+            <Crosshair className="size-5" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="font-mono-label text-[10px] uppercase tracking-wider text-[var(--danger-strong)]">
+              vote · final
+            </div>
+            <h2
+              className="text-lg font-bold leading-tight text-[var(--foreground)]"
+              id="vote-title"
+            >
+              Eliminate who?
+            </h2>
+            <p className="text-xs text-[var(--muted)]">
+              Roles stay hidden. Confirm only when you&apos;re sure.
+            </p>
+          </div>
+          <button
+            aria-label="Close vote modal"
+            className="focus-ring text-[var(--muted)] transition hover:text-[var(--foreground)]"
+            onClick={onClose}
+            type="button"
+          >
+            <XCircle className="size-5" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="mb-4 max-h-[45vh] space-y-1.5 overflow-y-auto">
+          {players.map((player) => {
+            const isSelected = selectedPlayerId === player.id;
+            const suspicion = Math.round(player.suspicion * 100);
+
+            return (
+              <button
+                aria-pressed={isSelected}
+                className={
+                  isSelected
+                    ? "glow-danger focus-ring flex w-full items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--danger)_62%,transparent)] bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] p-3 text-left transition"
+                    : "focus-ring flex w-full items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--line)_72%,transparent)] bg-[var(--surface)] p-3 text-left transition hover:border-[var(--line)]"
+                }
+                disabled={isBusy}
+                key={player.id}
+                onClick={() => setSelectedPlayerId(player.id)}
+                type="button"
+              >
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--surface-elevated)] text-xs font-bold uppercase text-[var(--foreground)]">
+                  {player.displayName.slice(0, 2)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-[var(--foreground)]">
+                    {player.displayName}
+                  </span>
+                  <span className="block truncate text-[11px] text-[var(--muted)]">
+                    {player.publicStyle} · suspicion {suspicion}%
+                  </span>
+                </span>
+                <span
+                  className={
+                    isSelected
+                      ? "grid size-5 place-items-center rounded-full border border-[var(--danger)] bg-[var(--danger)] text-[var(--danger-foreground)]"
+                      : "grid size-5 place-items-center rounded-full border border-[var(--line)]"
+                  }
+                >
+                  {isSelected ? (
+                    <CheckCircle2 className="size-3.5" aria-hidden="true" />
+                  ) : null}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-[color-mix(in_srgb,var(--warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--warning)_7%,transparent)] p-2.5 text-[11px] text-[var(--warning)]">
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+          Votes are final. If you eliminate a Villager, the Mafia grows
+          stronger.
+        </div>
+
+        <button
+          className="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--danger)] px-4 py-3.5 text-sm font-semibold text-[var(--danger-foreground)] transition hover:bg-[var(--danger-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={isBusy || !selectedPlayerId}
+          onClick={onConfirm}
+          type="button"
+        >
+          Confirm Vote
+        </button>
+      </section>
+    </div>
   );
 }
 
 function getAdvanceLabel(phase: Phase): string {
   switch (phase) {
     case "ROLE_REVEAL":
-      return "Begin Night";
+      return "Enter Room";
     case "NIGHT_ACTIONS":
       return "Resolve Night";
     case "DAY_DISCUSSION":
@@ -203,7 +351,7 @@ function getAdvanceLabel(phase: Phase): string {
 function getPhaseInstruction(phase: Phase, role: string): string {
   switch (phase) {
     case "ROLE_REVEAL":
-      return `You are the ${role}. Keep the other roles hidden and begin when ready.`;
+      return `You are the ${role}. Keep the other roles hidden and enter when ready.`;
     case "NIGHT_ACTIONS":
       return "Hidden roles are choosing their deterministic night actions.";
     case "DAY_DISCUSSION":

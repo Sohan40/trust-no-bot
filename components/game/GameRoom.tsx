@@ -100,9 +100,9 @@ export function GameRoom({ gameId }: GameRoomProps) {
           submitGameAction(gameId, "ADVANCE_PHASE"),
         )
       }
-      onAskQuestion={(question) =>
+      onAskQuestion={(question, targetPlayerId) =>
         runAction("ASK_QUESTION", () =>
-          submitGameAction(gameId, "ASK_QUESTION", { question }),
+          submitGameAction(gameId, "ASK_QUESTION", { question, targetPlayerId }),
         )
       }
       onVote={(targetPlayerId) =>
@@ -116,17 +116,18 @@ export function GameRoom({ gameId }: GameRoomProps) {
 
 function GameLoadingState() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#090a0f] px-5">
+    <main className="tnb-page relative flex min-h-screen items-center justify-center overflow-hidden px-5">
+      <div className="scanlines pointer-events-none absolute inset-0 opacity-60" />
       <div
         aria-live="polite"
-        className="w-full max-w-md rounded-lg border border-[#2d3547] bg-[#121722] p-6 text-center"
+        className="glow-amber relative w-full max-w-md rounded-2xl border border-[color-mix(in_srgb,var(--accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--panel)_76%,transparent)] p-6 text-center backdrop-blur"
         role="status"
       >
-        <div className="mx-auto size-10 animate-pulse rounded-full bg-[#e3b75f]" />
-        <h1 className="mt-5 text-xl font-black text-white">
+        <div className="pulse-ring mx-auto size-10 rounded-full bg-[var(--accent)]" />
+        <h1 className="mt-5 text-xl font-black text-[var(--foreground)]">
           Opening the room
         </h1>
-        <p className="mt-2 text-sm leading-6 text-[#aab4c5]">
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
           Loading the latest persisted game state.
         </p>
       </div>
@@ -142,30 +143,31 @@ function GameLoadError({
   onRetry: () => void;
 }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#090a0f] px-5">
-      <section className="w-full max-w-md rounded-lg border border-[#4d3038] bg-[#17131a] p-6">
+    <main className="tnb-page relative flex min-h-screen items-center justify-center overflow-hidden px-5">
+      <div className="scanlines pointer-events-none absolute inset-0 opacity-60" />
+      <section className="glow-danger relative w-full max-w-md rounded-2xl border border-[color-mix(in_srgb,var(--danger)_45%,transparent)] bg-[color-mix(in_srgb,var(--panel)_82%,transparent)] p-6 backdrop-blur">
         <Link
-          className="text-sm font-semibold uppercase tracking-[0.16em] text-[#f3d48d]"
+          className="font-mono-label text-sm font-semibold uppercase tracking-[0.16em] text-[var(--accent)]"
           href="/"
         >
-          Trust No Bot
+          trust_no_bot.exe
         </Link>
-        <h1 className="mt-5 text-2xl font-black text-white">
+        <h1 className="mt-5 text-2xl font-black text-[var(--foreground)]">
           The room could not open
         </h1>
-        <p className="mt-3 text-sm leading-6 text-[#d3c3c8]" role="alert">
+        <p className="mt-3 text-sm leading-6 text-[color-mix(in_srgb,var(--foreground)_82%,transparent)]" role="alert">
           {error}
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <button
-            className="focus-ring min-h-11 rounded-md bg-[#e3b75f] px-4 text-sm font-bold text-[#12100a]"
+            className="focus-ring min-h-11 rounded-xl bg-[var(--accent)] px-4 text-sm font-bold text-[var(--accent-foreground)]"
             onClick={onRetry}
             type="button"
           >
             Retry
           </button>
           <StartGameButton
-            className="focus-ring min-h-11 w-full rounded-md border border-[#4a5266] px-4 text-sm font-semibold text-white"
+            className="focus-ring min-h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--line)_76%,transparent)] px-4 text-sm font-semibold text-[var(--foreground)]"
             label="Start New Game"
           />
         </div>
