@@ -36,6 +36,7 @@ Deploy a working Trust No Bot Classic Mode MVP by next week.
 - Game/AI counters reset when the persisted database date changes, and AI attempts record provider/model/purpose in `ai_usage_events` before the model call.
 - Issue #44 ports the preview-44 dark interrogation-room visual design into the real persisted app flow without changing backend game logic.
 - The landing page, role reveal, sticky phase header, player rail, transcript bubbles, action panel, red vote modal, and result/share card now use the amber/danger cinematic theme.
+- A post-review gameplay fix now moves the player from role reveal into Day 1 Discussion instead of first-night resolution, preventing a new game from ending before the player can question or vote.
 
 ## Current architecture decision
 
@@ -124,6 +125,10 @@ Use this order for the next-week MVP:
   - `components/game/GameShell.tsx`, `RoleReveal.tsx`, `PlayerCard.tsx`, `Transcript.tsx`, `ActionPanel.tsx`, `ResultPanel.tsx`, and `ShareResultButton.tsx` now render the preview-inspired game room, role reveal, red vote modal, and result/share card from `VisibleGameState`.
   - The question target selector passes `targetPlayerId` through the existing action payload; deterministic rules and API routes remain unchanged.
   - `lucide-react` was added for production iconography matching the preview direction.
+- Issue #44 gameplay regression fix:
+  - `ROLE_REVEAL` now advances to `DAY_DISCUSSION` instead of `NIGHT_ACTIONS`.
+  - Added a regression test proving Enter Room starts active Day 1 Discussion.
+  - The existing dead-human terminal rule still applies later if the human dies after gameplay has started.
 
 ## In progress
 
@@ -172,7 +177,7 @@ The next task must preserve anonymous-session ownership, hidden-role filtering, 
 - The issue #42 Supabase migration is applied and a rolled-back SQL verification passed game, AI action, question, daily reset, and usage-event assertions.
 - Issue #44 local browser smoke on `http://localhost:4318` passed:
   - landing Start Game created persisted games through the real API
-  - role reveal rendered a confidential card and advanced through `ADVANCE_PHASE`
+  - role reveal rendered a confidential card and advanced through `ADVANCE_PHASE` into Day 1 Discussion
   - the sticky phase header, player rail, transcript, desktop/mobile action panel, question input, red vote modal, and result/share card rendered
   - one real game completed and revealed roles only after game over
   - GET `/api/game/[gameId]` omitted AI `role`/`team` before game over and included them after completion

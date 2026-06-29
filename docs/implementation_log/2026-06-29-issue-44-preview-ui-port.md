@@ -25,18 +25,31 @@ without replacing the persisted Supabase/OpenAI game flow.
 
 ## Preserved Boundaries
 
-- No backend game rules changed.
+- Backend game logic changed only for the initial post-role-reveal phase:
+  `ROLE_REVEAL` now enters `DAY_DISCUSSION` instead of `NIGHT_ACTIONS`.
 - No API routes changed.
 - No database migrations changed.
 - No OpenAI prompts or usage-limit logic changed.
 - Hidden role/team fields are still rendered only when present in
   `VisibleGameState`, which means AI roles stay hidden before game over.
 
+## Follow-Up Gameplay Fix
+
+After manual review, the remodeled UI made a pre-existing rough path obvious:
+entering the room advanced to `NIGHT_ACTIONS`, so the first visible action was
+`Resolve Night`. If the deterministic Mafia target was the human, the MVP
+dead-human terminal rule ended the game before the player could ask or vote.
+
+To keep the single-player MVP playable, `ROLE_REVEAL` now advances to
+`DAY_DISCUSSION`. The first room action is discussion/questioning, while later
+night phases and the dead-human terminal rule still work as before.
+
 ## Validation
 
 - `npm run typecheck`
 - `npm test` (46 tests)
 - `npm run build`
+- `npm test -- lib/game/classic-engine.test.ts` after the follow-up gameplay fix
 - Local browser smoke on `http://localhost:4318`:
   - started persisted games through the real Start Game API
   - advanced through role reveal and night resolution
